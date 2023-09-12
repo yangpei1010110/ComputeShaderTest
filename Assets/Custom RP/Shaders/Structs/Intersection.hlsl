@@ -12,7 +12,7 @@ struct HitRecord
     float frontFace;
 };
 
-void SetFaceNormal(inout HitRecord record, in Ray ray, in float3 outwardNormal)
+static inline void SetFaceNormal(inout HitRecord record, in Ray ray, in float3 outwardNormal)
 {
     record.frontFace = dot(ray.direction, outwardNormal) < 0;
     record.normal = record.frontFace ? outwardNormal : -outwardNormal;

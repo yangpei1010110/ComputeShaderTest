@@ -10,4 +10,12 @@ struct BvhNode
     int triangleIndex;
 };
 
+
+static inline void Init(inout BvhNode result, in Bounds Value, in int GameObjectId, int triangleIndex)
+{
+    result.Value = Value;
+    result.GameObjectId = GameObjectId;
+    result.triangleIndex = triangleIndex;
+}
+
 #endif

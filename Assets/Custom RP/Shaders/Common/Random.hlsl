@@ -3,27 +3,27 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"
 
-float InterleavedGradientNoise(float2 xy)
+static inline float InterleavedGradientNoise(float2 xy)
 {
     return frac(52.9829189f * frac(xy.x * 0.06711056f + xy.y * 0.00583715f));
 }
 
-float RandomNextFloat(uint seed, float min, float max)
+static inline float RandomNextFloat(uint seed, float min, float max)
 {
     return Hash(seed) * (max - min) + min;
 }
 
-float3 RandomFloat3(uint seed)
+static inline float3 RandomFloat3(uint seed)
 {
     return float3(Hash(seed), Hash(seed + 1), Hash(seed + 2));
 }
 
-float3 RandomFloat3(uint seed, float min, float max)
+static inline float3 RandomFloat3(uint seed, float min, float max)
 {
     return float3(RandomNextFloat(seed, min, max), RandomNextFloat(seed + 1, min, max), RandomNextFloat(seed + 2, min, max));
 }
 
-float3 RandomInUnitSphere(uint seed)
+static inline float3 RandomInUnitSphere(uint seed)
 {
     float3 p;
     do
@@ -34,18 +34,18 @@ float3 RandomInUnitSphere(uint seed)
     return p;
 }
 
-float3 RandomInUnitHemisphere(uint seed, float3 normal)
+static inline float3 RandomInUnitHemisphere(uint seed, float3 normal)
 {
     float3 p = RandomInUnitSphere(seed);
     return dot(p, normal) > 0 ? p : -p;
 }
 
-float3 RandomUnitVector(uint seed)
+static inline float3 RandomUnitVector(uint seed)
 {
     return normalize(RandomInUnitSphere(seed));
 }
 
-float3 RandomInUnitDisk(uint seed)
+static inline float3 RandomInUnitDisk(uint seed)
 {
     float3 p;
     do
