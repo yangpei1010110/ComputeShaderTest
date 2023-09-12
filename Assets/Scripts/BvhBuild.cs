@@ -8,9 +8,9 @@ using Debug = UnityEngine.Debug;
 
 public class BvhBuild : MonoBehaviour
 {
-    [Range(0, 20)] public int showDepth;
-    private ArrayTree<BvhNodeTools.BvhNode> _tree = new();
-    
+    [Range(0, 20)] public int                             showDepth;
+    private               ArrayTree<BvhNodeTools.BvhNode> _tree         = new();
+
     void Start()
     {
         Stopwatch sw = Stopwatch.StartNew();
@@ -30,6 +30,7 @@ public class BvhBuild : MonoBehaviour
             var maxDept = _tree.depth;
             Debug.Log($"maxDept:{maxDept}");
         }
+
     }
 
     private void OnDrawGizmosSelected()
@@ -44,11 +45,11 @@ public class BvhBuild : MonoBehaviour
     {
         if (depth == showDepth && !tree.IsNull(index))
         {
-            Gizmos.DrawWireCube(tree[index].Value.center, tree[index].Value.size);
+            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.size);
         }
         else if (tree.IsNull(tree.Left(index)) && tree.IsNull(tree.Right(index)) && depth < showDepth && !tree.IsNull(index))
         {
-            Gizmos.DrawWireCube(tree[index].Value.center, tree[index].Value.size);
+            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.size);
         }
         else
         {

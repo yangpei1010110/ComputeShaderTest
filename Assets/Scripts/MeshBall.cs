@@ -1,7 +1,6 @@
 #nullable enable
 
-using System;
-using System.Collections;
+using Tools;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -15,19 +14,22 @@ public class MeshBall : MonoBehaviour
     [SerializeField]
     Material? m_material = default(Material);
 
-    Matrix4x4[] m_matrices   = new Matrix4x4[1023];
-    Vector4[]   m_baseColors = new Vector4[1023];
+    Matrix4x4[]       m_matrices     = new Matrix4x4[1023];
+    Vector4[]         m_baseColors   = new Vector4[1023];
+    [SerializeField]
+    public Vector3[] m_spherePoints = new Vector3[1023];
 
     MaterialPropertyBlock? m_block;
 
     private void Awake()
     {
+        EvenlyDistributingOnSphere.Generation(m_spherePoints);
         for (int i = 0; i < m_matrices.Length; i++)
         {
             m_matrices[i] = Matrix4x4.TRS(
-                Random.insideUnitSphere * 10f,
+                m_spherePoints[i],
                 Quaternion.identity,
-                Vector3.one
+                Vector3.one * 0.05f
             );
             m_baseColors[i] = new Vector4(
                 Random.value,
@@ -37,32 +39,32 @@ public class MeshBall : MonoBehaviour
             );
         }
 
-        StartCoroutine(ChangeBall(10));
+        // StartCoroutine(ChangeBall(10));
     }
 
-    private IEnumerator ChangeBall(int countPerFrame)
-    {
-        int i = 0;
-        while (true)
-        {
-            yield return new WaitForEndOfFrame();
-            for (int j = 0; j < countPerFrame; j++)
-            {
-                i = (i + 1) % m_matrices.Length;
-                m_matrices[i] = Matrix4x4.TRS(
-                    Random.insideUnitSphere * 10f,
-                    Quaternion.identity,
-                    Vector3.one
-                );
-                m_baseColors[i] = new Vector4(
-                    Random.value,
-                    Random.value,
-                    Random.value,
-                    1f
-                );
-            }
-        }
-    }
+    // private IEnumerator ChangeBall(int countPerFrame)
+    // {
+    //     int i = 0;
+    //     while (true)
+    //     {
+    //         yield return new WaitForEndOfFrame();
+    //         for (int j = 0; j < countPerFrame; j++)
+    //         {
+    //             i = (i + 1) % m_matrices.Length;
+    //             m_matrices[i] = Matrix4x4.TRS(
+    //                 Random.insideUnitSphere * 10f,
+    //                 Quaternion.identity,
+    //                 Vector3.one
+    //             );
+    //             m_baseColors[i] = new Vector4(
+    //                 Random.value,
+    //                 Random.value,
+    //                 Random.value,
+    //                 1f
+    //             );
+    //         }
+    //     }
+    // }
 
     private void Update()
     {

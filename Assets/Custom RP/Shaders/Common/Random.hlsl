@@ -3,6 +3,11 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"
 
+float InterleavedGradientNoise(float2 xy)
+{
+    return frac(52.9829189f * frac(xy.x * 0.06711056f + xy.y * 0.00583715f));
+}
+
 float RandomNextFloat(uint seed, float min, float max)
 {
     return Hash(seed) * (max - min) + min;

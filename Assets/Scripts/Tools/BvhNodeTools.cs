@@ -10,10 +10,10 @@ namespace Tools
     {
         public class BvhNode
         {
-            public Bounds Value;
-            // public Mesh? mesh;
-            public int GameObjectId;
-            public int triangleIndex;
+            public Bounds value;
+            public int    gameObjectId;
+            public int    meshIndex;
+            public int    triangleIndex;
         }
 
         public enum XYZ
@@ -24,37 +24,37 @@ namespace Tools
             Z     = 1 << 2,
         }
 
-        private static Comparer<BvhNode> xComparer = Comparer<BvhNode>.Create((left, right) => { return left.Value.center.x.CompareTo(right.Value.center.x); });
-        private static Comparer<BvhNode> yComparer = Comparer<BvhNode>.Create((left, right) => { return left.Value.center.y.CompareTo(right.Value.center.y); });
-        private static Comparer<BvhNode> zComparer = Comparer<BvhNode>.Create((left, right) => { return left.Value.center.z.CompareTo(right.Value.center.z); });
+        private static Comparer<BvhNode> xComparer = Comparer<BvhNode>.Create((left, right) => { return left.value.center.x.CompareTo(right.value.center.x); });
+        private static Comparer<BvhNode> yComparer = Comparer<BvhNode>.Create((left, right) => { return left.value.center.y.CompareTo(right.value.center.y); });
+        private static Comparer<BvhNode> zComparer = Comparer<BvhNode>.Create((left, right) => { return left.value.center.z.CompareTo(right.value.center.z); });
 
         public static void Build(in BvhNode[] arr, in int start, in int length, in ArrayTree<BvhNode> tree, in int treeIndex)
         {
             tree[treeIndex] = new BvhNode();
-            
+
             if (length <= 0)
             {
                 throw new Exception("size <= 0");
             }
             else if (length == 1)
             {
-                tree[treeIndex].Value = arr[start].Value;
-                tree[treeIndex].GameObjectId = arr[start].GameObjectId;
+                tree[treeIndex].value = arr[start].value;
+                tree[treeIndex].gameObjectId = arr[start].gameObjectId;
                 tree[treeIndex].triangleIndex = arr[start].triangleIndex;
             }
             else if (length == 2)
             {
-                tree[treeIndex].Value = Union(arr[start].Value, arr[start + 1].Value);
+                tree[treeIndex].value = Union(arr[start].value, arr[start + 1].value);
                 tree[tree.LeftAndResize(treeIndex)] = arr[start];
                 tree[tree.RightAndResize(treeIndex)] = arr[start + 1];
             }
             else
             {
                 Bounds centroidBounds = default(Bounds);
-                centroidBounds.center = arr[start].Value.center;
+                centroidBounds.center = arr[start].value.center;
                 for (int i = 1; i < length; i++)
                 {
-                    centroidBounds = Union(centroidBounds, arr[start + i].Value.center);
+                    centroidBounds = Union(centroidBounds, arr[start + i].value.center);
                 }
 
                 XYZ dim = MaxExtent(centroidBounds);
@@ -79,7 +79,7 @@ namespace Tools
 
                 Build(arr, begin, mid - begin, tree, tree.LeftAndResize(treeIndex));
                 Build(arr, mid, end - mid, tree, tree.RightAndResize(treeIndex));
-                tree[treeIndex].Value = Union(tree[tree.Left(treeIndex)].Value, tree[tree.Right(treeIndex)].Value);
+                tree[treeIndex].value = Union(tree[tree.Left(treeIndex)].value, tree[tree.Right(treeIndex)].value);
             }
         }
 
@@ -92,26 +92,28 @@ namespace Tools
             }
 
             Mesh? mesh = meshFilter.mesh;
-            Vector3[]? verts = mesh.vertices;
-            int[]? tris = mesh.triangles;
-            if (tris == null || verts == null)
+            Vector3[]? vertices = mesh.vertices;
+            Vector3[]? normals = mesh.normals;
+            int[]? triangles = mesh.triangles;
+            Vector2[]? uvs = mesh.uv;
+            if (triangles == null || normals == null || vertices == null || uvs == null)
             {
                 return;
             }
 
-            int count = tris.Length / 3;
+            int count = triangles.Length / 3;
             Transform goTransform = go.transform;
             Matrix4x4 goLocalToWorldMatrix = goTransform.localToWorldMatrix;
             Vector3 goPosition = goTransform.position;
             for (int i = 0; i < count; i++)
             {
-                Vector3 t0 = goPosition + (Vector3)(goLocalToWorldMatrix * verts[tris[i * 3 + 0]]);
-                Vector3 t1 = goPosition + (Vector3)(goLocalToWorldMatrix * verts[tris[i * 3 + 1]]);
-                Vector3 t2 = goPosition + (Vector3)(goLocalToWorldMatrix * verts[tris[i * 3 + 2]]);
+                Vector3 t0 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 0]]);
+                Vector3 t1 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 1]]);
+                Vector3 t2 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 2]]);
                 result.Add(new BvhNode()
                 {
-                    Value = GetBounds(t0, t1, t2),
-                    GameObjectId = go.GetInstanceID(),
+                    value = GetBounds(t0, t1, t2),
+                    gameObjectId = go.GetInstanceID(),
                     triangleIndex = i,
                 });
             }
@@ -127,7 +129,7 @@ namespace Tools
             Bounds result = default(Bounds);
             for (int i = 0; i < size; i++)
             {
-                result = Union(result, arr[start + i].Value);
+                result = Union(result, arr[start + i].value);
             }
 
             return result;
