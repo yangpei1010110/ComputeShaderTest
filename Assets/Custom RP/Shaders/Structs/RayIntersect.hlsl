@@ -1,11 +1,11 @@
 #ifndef DATA_STRUCT_RAY_INTERSECT
 #define DATA_STRUCT_RAY_INTERSECT
 
-#include "Bounds.hlsl"
-#include "Ray.hlsl"
+#include "../Compute/ComputeInput.hlsl"
+
 
 // AABB 光线 求交算法
-static inline bool Intersects(in Bounds bounds, in Ray ray, out float t)
+static inline bool Intersects(in Bounds bounds, in Ray ray)
 {
     float tMin = 0, tMax = 1 / 0;
     float3 boxMin = GetMin(bounds);
@@ -28,10 +28,10 @@ static inline bool Intersects(in Bounds bounds, in Ray ray, out float t)
 }
 
 // Möller–Trumbore 光线 三角形 求交算法
-static inline bool RayIntersectsTriangle(in Ray ray, in float3 t0, in float3 t1, in float3 t2, out float3 outIntersectionPoint)
+static inline bool RayIntersectsTriangle(in Ray ray, in float3 t0, in float3 t1, in float3 t2, out float outIntersectionT)
 {
     const float EPSILON = 0.0000001;
-    outIntersectionPoint = float3(0, 0, 0);
+    // outIntersectionT = 0;
     float3 edge1, edge2, h, s, q;
     float a, f, u, v;
     edge1 = t1 - t0;
@@ -63,13 +63,79 @@ static inline bool RayIntersectsTriangle(in Ray ray, in float3 t0, in float3 t1,
     float t = f * dot(edge2, q);
     if (t > EPSILON)
     {
-        outIntersectionPoint = ray.origin + ray.direction * t;
+        outIntersectionT = t;
         return true;
     }
     else
     {
         return false;
     }
+}
+
+// TODO 实现 BVH 光线 求交算法
+static inline bool Raycast(in int treeIndex, in Ray ray, out float outIntersectionT)
+{
+    if (treeIndex >= BvhTreeCount)
+    {
+        return false;
+    }
+    outIntersectionT = 0;
+
+    const int MAX_STACK_SIZE = 32;
+    int stack[MAX_STACK_SIZE]; // max depth
+    int treeIndexStack[MAX_STACK_SIZE];
+    int tStack[MAX_STACK_SIZE];
+    int index = 0;
+    do
+    {
+        int left = index * 2 + 1;
+        int right = index * 2 + 2;
+        BvhNode node = BvhTree[index];
+        if (node.gameObjectId == 0)
+        {
+            // is leaf
+            // intersect with triangle
+            float3 v0 = Vertices[Triangles[node.triangleIndex * 3 + 0]];
+            float3 v1 = Vertices[Triangles[node.triangleIndex * 3 + 1]];
+            float3 v2 = Vertices[Triangles[node.triangleIndex * 3 + 2]];
+            float oldIntersectionT = outIntersectionT;
+            if (RayIntersectsTriangle(ray, v0, v1, v2, outIntersectionT))
+            {
+                return true;
+            }
+            else
+            {
+                outIntersectionT = oldIntersectionT;
+                return false;
+            }
+        }
+        else
+        {
+            // is node
+            // intersect with aabb
+            float oldIntersectionT = outIntersectionT;
+            if (Intersects(node.value, ray))
+            {
+                // push right
+                stack[index] = 1;
+                treeIndexStack[index] = right;
+                tStack[index] = outIntersectionT;
+                index++;
+                // push left
+                stack[index] = 0;
+                treeIndexStack[index] = left;
+                tStack[index] = outIntersectionT;
+                index++;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    while (true);
+
+    return false;
 }
 
 #endif

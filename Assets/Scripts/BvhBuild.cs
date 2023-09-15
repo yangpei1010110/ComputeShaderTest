@@ -10,22 +10,24 @@ using Debug = UnityEngine.Debug;
 public class BvhBuild : MonoBehaviour
 {
     [Range(0, 20)] public int                             showDepth;
-    public                ArrayTree<BvhNodeTools.BvhNode> _tree    = new();
-    public                Vector3[]                       Vertices = Array.Empty<Vector3>();
+    public                ArrayTree<BvhNodeTools.BvhNode> _tree     = new();
+    public                Vector3[]                       Vertices  = Array.Empty<Vector3>();
+    public                int[]                       Triangles = Array.Empty<int>();
 
     void Start()
     {
         Stopwatch sw = Stopwatch.StartNew();
         List<BvhNodeTools.BvhNode> bvhNodeList = new();
-        List<Vector3>            verticesList = new();
-        int trianglesIndex = 0;
+        List<Vector3> verticesList = new();
+        List<int> trianglesList = new();
         foreach (GameObject go in gameObject.scene.GetRootGameObjects())
         {
-            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList,ref verticesList,ref trianglesIndex);
+            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList, ref verticesList,ref trianglesList);
         }
 
         var _bvhNodes = bvhNodeList.ToArray();
         Vertices = verticesList.ToArray();
+        Triangles = trianglesList.ToArray();
         BvhNodeTools.Build(_bvhNodes, 0, _bvhNodes.Length, _tree, 0);
 
         sw.Stop();

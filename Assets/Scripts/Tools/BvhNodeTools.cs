@@ -83,7 +83,7 @@ namespace Tools
             }
         }
 
-        public static void SubCollectAllBvhNodes(in GameObject go, ref List<BvhNode> result, ref List<Vector3> verticesList, ref int trianglesIndex)
+        public static void SubCollectAllBvhNodes(in GameObject go, ref List<BvhNode> result, ref List<Vector3> verticesList, ref List<int> trianglesList)
         {
             MeshFilter? meshFilter = go.GetComponent<MeshFilter>();
             if (meshFilter == null)
@@ -93,7 +93,6 @@ namespace Tools
 
             Mesh? mesh = meshFilter.mesh;
             Vector3[]? vertices = mesh.vertices;
-            verticesList.AddRange(vertices);
             Vector3[]? normals = mesh.normals;
             int[]? triangles = mesh.triangles;
             Vector2[]? uvs = mesh.uv;
@@ -115,14 +114,15 @@ namespace Tools
                 {
                     value = GetBounds(t0, t1, t2),
                     gameObjectId = go.GetInstanceID(),
-                    triangleIndex = trianglesIndex + i,
+                    triangleIndex = verticesList.Count + i,
                 });
             }
 
-            trianglesIndex += trianglesCount;
+            verticesList.AddRange(vertices);
+            trianglesList.AddRange(triangles);
             foreach (GameObject subGo in go.transform)
             {
-                SubCollectAllBvhNodes(subGo, ref result, ref verticesList, ref trianglesIndex);
+                SubCollectAllBvhNodes(subGo, ref result, ref verticesList, ref trianglesList);
             }
         }
 

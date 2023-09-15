@@ -1,8 +1,10 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel RayTracingCompute
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "ComputeInput.hlsl"
 #include "CreateCameraRays.hlsl"
+#include "../Structs/RayIntersect.hlsl"
 
 float3 Normal(float3 t0, float3 t1, float3 t2)
 {
@@ -10,7 +12,7 @@ float3 Normal(float3 t0, float3 t1, float3 t2)
 }
 
 [numthreads(8,8,1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+void RayTracingCompute(uint3 id : SV_DispatchThreadID)
 {
     uint width, height;
     Result.GetDimensions(width, height);
@@ -18,14 +20,23 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     Ray ray = CreateCameraRays(uv);
     Result[id.xy] = float4(ray.direction * 0.5 + 0.5, 1.0);
 
-    if (id.x * width + id.y < BvhTreeCount)
+    // if (id.x * width + id.y < BvhTreeCount)
+    float3 minDistance = FLT_MAX;
+    // for (int i = 0; i < BvhTreeCount; i++)
     {
-        int index = id.x * width + id.y;
-        BvhNode node = BvhTree[index];
-        float3 t0 = Vertices[node.triangleIndex];
-        float3 t1 = Vertices[node.triangleIndex + 1];
-        float3 t2 = Vertices[node.triangleIndex + 2];
-        float3 normal = Normal(t0, t1, t2);
-        Result[id.xy] = dot(Result[id.xy], normal);
+        // int index = id.x * width + id.y;
+        // index %= BvhTreeCount;
+        BvhNode node = BvhTree[i];
+        float3 t0 = Vertices[Triangles[node.triangleIndex]];
+        float3 t1 = Vertices[Triangles[node.triangleIndex + 1]];
+        float3 t2 = Vertices[Triangles[node.triangleIndex + 2]];
+        float3 distance;
+        if (RayIntersectsTriangle(ray, t0, t1, t2, distance))
+        {
+            // RayIntersectsTriangle(ray, t0, t1, t2, distance);
+            minDistance = min(minDistance, distance);
+            // float3 normal = Normal(t0, t1, t2);
+            Result[id.xy] = float4(minDistance, 1.0);
+        }
     }
 }

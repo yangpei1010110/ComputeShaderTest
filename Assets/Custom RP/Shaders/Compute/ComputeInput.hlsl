@@ -6,6 +6,7 @@
 #include "../Structs/BvhNode.hlsl"
 
 RWStructuredBuffer<float3> Vertices;
+RWStructuredBuffer<int> Triangles;
 RWStructuredBuffer<BvhNode> BvhTree;
 int BvhTreeCount;
 RWTexture2D<float4> Result;
