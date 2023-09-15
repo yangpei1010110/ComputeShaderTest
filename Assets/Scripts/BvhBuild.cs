@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Tools;
@@ -9,18 +10,22 @@ using Debug = UnityEngine.Debug;
 public class BvhBuild : MonoBehaviour
 {
     [Range(0, 20)] public int                             showDepth;
-    private               ArrayTree<BvhNodeTools.BvhNode> _tree         = new();
+    public                ArrayTree<BvhNodeTools.BvhNode> _tree    = new();
+    public                Vector3[]                       Vertices = Array.Empty<Vector3>();
 
     void Start()
     {
         Stopwatch sw = Stopwatch.StartNew();
         List<BvhNodeTools.BvhNode> bvhNodeList = new();
+        List<Vector3>            verticesList = new();
+        int trianglesIndex = 0;
         foreach (GameObject go in gameObject.scene.GetRootGameObjects())
         {
-            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList);
+            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList,ref verticesList,ref trianglesIndex);
         }
 
         var _bvhNodes = bvhNodeList.ToArray();
+        Vertices = verticesList.ToArray();
         BvhNodeTools.Build(_bvhNodes, 0, _bvhNodes.Length, _tree, 0);
 
         sw.Stop();
@@ -30,7 +35,6 @@ public class BvhBuild : MonoBehaviour
             var maxDept = _tree.depth;
             Debug.Log($"maxDept:{maxDept}");
         }
-
     }
 
     private void OnDrawGizmosSelected()

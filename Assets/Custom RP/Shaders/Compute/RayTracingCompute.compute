@@ -1,16 +1,31 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Debug.hlsl"
 #include "ComputeInput.hlsl"
+#include "CreateCameraRays.hlsl"
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+float3 Normal(float3 t0, float3 t1, float3 t2)
+{
+    return normalize(cross(t1 - t0, t2 - t0));
+}
 
 [numthreads(8,8,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    // TODO: insert actual code here!
+    uint width, height;
+    Result.GetDimensions(width, height);
+    float2 uv = (id.xy + 0.5) / float2(width, height) * 2.0 - 1.0;
+    Ray ray = CreateCameraRays(uv);
+    Result[id.xy] = float4(ray.direction * 0.5 + 0.5, 1.0);
 
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
+    if (id.x * width + id.y < BvhTreeCount)
+    {
+        int index = id.x * width + id.y;
+        BvhNode node = BvhTree[index];
+        float3 t0 = Vertices[node.triangleIndex];
+        float3 t1 = Vertices[node.triangleIndex + 1];
+        float3 t2 = Vertices[node.triangleIndex + 2];
+        float3 normal = Normal(t0, t1, t2);
+        Result[id.xy] = dot(Result[id.xy], normal);
+    }
 }

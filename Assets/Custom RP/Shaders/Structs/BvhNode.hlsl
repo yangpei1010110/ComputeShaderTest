@@ -5,16 +5,22 @@
 
 struct BvhNode
 {
-    Bounds Value;
-    int GameObjectId;
+    Bounds value;
+    int gameObjectId;
+    int materialId;
     int triangleIndex;
 };
 
 
-static inline void Init(inout BvhNode result, in Bounds Value, in int GameObjectId, int triangleIndex)
+static inline void Init(inout BvhNode result,
+                        in Bounds value,
+                        in int gameObjectId,
+                        in int materialId,
+                        in int triangleIndex)
 {
-    result.Value = Value;
-    result.GameObjectId = GameObjectId;
+    result.value = value;
+    result.gameObjectId = gameObjectId;
+    result.materialId = materialId;
     result.triangleIndex = triangleIndex;
 }
 

@@ -8,11 +8,11 @@ namespace Tools
 {
     public static class BvhNodeTools
     {
-        public class BvhNode
+        public struct BvhNode
         {
             public Bounds value;
             public int    gameObjectId;
-            public int    meshIndex;
+            public int    materialId;
             public int    triangleIndex;
         }
 
@@ -83,7 +83,7 @@ namespace Tools
             }
         }
 
-        public static void SubCollectAllBvhNodes(in GameObject go, ref List<BvhNode> result)
+        public static void SubCollectAllBvhNodes(in GameObject go, ref List<BvhNode> result, ref List<Vector3> verticesList, ref int trianglesIndex)
         {
             MeshFilter? meshFilter = go.GetComponent<MeshFilter>();
             if (meshFilter == null)
@@ -93,6 +93,7 @@ namespace Tools
 
             Mesh? mesh = meshFilter.mesh;
             Vector3[]? vertices = mesh.vertices;
+            verticesList.AddRange(vertices);
             Vector3[]? normals = mesh.normals;
             int[]? triangles = mesh.triangles;
             Vector2[]? uvs = mesh.uv;
@@ -101,11 +102,11 @@ namespace Tools
                 return;
             }
 
-            int count = triangles.Length / 3;
+            int trianglesCount = triangles.Length / 3;
             Transform goTransform = go.transform;
             Matrix4x4 goLocalToWorldMatrix = goTransform.localToWorldMatrix;
             Vector3 goPosition = goTransform.position;
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < trianglesCount; i++)
             {
                 Vector3 t0 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 0]]);
                 Vector3 t1 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 1]]);
@@ -114,13 +115,14 @@ namespace Tools
                 {
                     value = GetBounds(t0, t1, t2),
                     gameObjectId = go.GetInstanceID(),
-                    triangleIndex = i,
+                    triangleIndex = trianglesIndex + i,
                 });
             }
 
+            trianglesIndex += trianglesCount;
             foreach (GameObject subGo in go.transform)
             {
-                SubCollectAllBvhNodes(subGo, ref result);
+                SubCollectAllBvhNodes(subGo, ref result, ref verticesList, ref trianglesIndex);
             }
         }
 
