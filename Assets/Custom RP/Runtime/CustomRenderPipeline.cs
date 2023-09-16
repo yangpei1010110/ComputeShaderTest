@@ -28,7 +28,7 @@ namespace Custom_RP.Runtime
             {
                 BeginCameraRendering(context, cameras[i]);
                 // TODO 这里是原始的渲染代码，我们需要将其替换为我们自己的渲染代码
-                // m_renderer.Render(context, cameras[i], useDynamicBatching, useGPUInstancing);
+                m_renderer.Render(context, cameras[i], useDynamicBatching, useGPUInstancing);
                 EndCameraRendering(context, cameras[i]);
             }
 
