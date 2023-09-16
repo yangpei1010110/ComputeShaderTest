@@ -26,9 +26,10 @@ namespace Custom_RP.Runtime
             BeginFrameRendering(context, cameras);
             for (int i = 0; i < cameras.Length; i++)
             {
-                RenderPipeline.BeginCameraRendering(context, cameras[i]);
-                m_renderer.Render(context, cameras[i], useDynamicBatching, useGPUInstancing);
-                RenderPipeline.EndCameraRendering(context, cameras[i]);
+                BeginCameraRendering(context, cameras[i]);
+                // TODO 这里是原始的渲染代码，我们需要将其替换为我们自己的渲染代码
+                // m_renderer.Render(context, cameras[i], useDynamicBatching, useGPUInstancing);
+                EndCameraRendering(context, cameras[i]);
             }
 
             EndFrameRendering(context, cameras);

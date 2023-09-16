@@ -56,7 +56,6 @@ namespace Custom_RP.Runtime.Shaders
              || BvhTreeTriangles.count != _bvhBuild.Triangles.Length)
             {
                 BvhTreeBuffer ??= new ComputeBuffer(_bvhBuild._tree._arr.Length, UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>());
-                Debug.Log($"sizeof(BvhNodeTools.BvhNode) = {UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>()}");
                 BvhTreeVertices ??= new ComputeBuffer(_bvhBuild.Vertices.Length, UnsafeUtility.SizeOf<Vector3>());
                 BvhTreeTriangles ??= new ComputeBuffer(_bvhBuild.Triangles.Length, UnsafeUtility.SizeOf<int>());
             }
@@ -67,8 +66,6 @@ namespace Custom_RP.Runtime.Shaders
                 BvhTreeVertices.SetData(_bvhBuild.Vertices);
                 BvhTreeTriangles.SetData(_bvhBuild.Triangles);
                 _bvhIsChanged = false;
-                Debug.Log($"TrianglesCount:{BvhTreeTriangles.count}");
-                Debug.Log($"BvhTreeCount:{_bvhBuild._tree._arr.Length}");
 
                 RayTracingShader.SetTexture(RayTracingComputeKernel, _SkyboxTexture, _skyboxTexture);
                 RayTracingShader.SetBuffer(RayTracingComputeKernel, Vertices, BvhTreeVertices);
@@ -83,12 +80,6 @@ namespace Custom_RP.Runtime.Shaders
 
         private void Render(ScriptableRenderContext src, Camera c)
         {
-            // if mode is game then run
-            // if (c.cameraType == CameraType.Game)
-            // {
-            //     return;
-            // }
-
             if (RayTracingShader == null)
             {
                 return;

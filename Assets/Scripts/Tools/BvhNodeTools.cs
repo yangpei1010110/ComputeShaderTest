@@ -8,18 +8,6 @@ namespace Tools
 {
     public static class BvhNodeTools
     {
-        // public struct MyBounds
-        // {
-        //     public Vector3 center;
-        //     public Vector3 extents;
-        //
-        //     public MyBounds(Vector3 c, Vector3 e)
-        //     {
-        //         center = c;
-        //         extents = e;
-        //     }
-        // }
-
         public struct BvhNode
         {
             public Bounds value;
