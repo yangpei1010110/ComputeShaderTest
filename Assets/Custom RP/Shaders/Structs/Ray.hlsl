@@ -10,7 +10,7 @@ struct Ray
     float tMax;
 };
 
-static inline void Init(inout Ray result, in float3 o, in float3 d, in float min, in float max)
+static inline void Init(out Ray result, in float3 o, in float3 d, in float min, in float max)
 {
     result.origin = o;
     result.direction = d;

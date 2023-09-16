@@ -8,6 +8,18 @@ namespace Tools
 {
     public static class BvhNodeTools
     {
+        // public struct MyBounds
+        // {
+        //     public Vector3 center;
+        //     public Vector3 extents;
+        //
+        //     public MyBounds(Vector3 c, Vector3 e)
+        //     {
+        //         center = c;
+        //         extents = e;
+        //     }
+        // }
+
         public struct BvhNode
         {
             public Bounds value;
@@ -101,15 +113,24 @@ namespace Tools
                 return;
             }
 
-            int trianglesCount = triangles.Length / 3;
             Transform goTransform = go.transform;
             Matrix4x4 goLocalToWorldMatrix = goTransform.localToWorldMatrix;
             Vector3 goPosition = goTransform.position;
-            for (int i = 0; i < trianglesCount; i++)
+            for (int i = 0; i < vertices.Length; i++)
             {
-                Vector3 t0 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 0]]);
-                Vector3 t1 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 1]]);
-                Vector3 t2 = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[triangles[i * 3 + 2]]);
+                vertices[i] = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[i]);
+            }
+
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                
+            }
+
+            for (int i = 0; i < triangles.Length / 3; i++)
+            {
+                Vector3 t0 = vertices[triangles[i * 3 + 0]];
+                Vector3 t1 = vertices[triangles[i * 3 + 1]];
+                Vector3 t2 = vertices[triangles[i * 3 + 2]];
                 result.Add(new BvhNode()
                 {
                     value = GetBounds(t0, t1, t2),
@@ -139,13 +160,13 @@ namespace Tools
 
         public static float SurfaceArea(in Bounds b0)
         {
-            Vector3 size = b0.size;
+            Vector3 size = b0.extents * 2f;
             return 2f * (size.x * size.y + size.x * size.z + size.y * size.z);
         }
 
         public static XYZ MaxExtent(in Bounds b0)
         {
-            Vector3 diagonal = math.abs(b0.max - b0.min);
+            Vector3 diagonal = math.abs(b0.size);
             if (diagonal.x > diagonal.y && diagonal.x > diagonal.z)
             {
                 return XYZ.X;
@@ -162,15 +183,15 @@ namespace Tools
 
         public static Bounds Union(in Bounds b0, in Vector3 p0)
         {
-            Vector3 min = Vector3.Min(b0.min, p0);
-            Vector3 max = Vector3.Max(b0.max, p0);
+            Vector3 min = Vector3.Min(b0.center - b0.extents, p0);
+            Vector3 max = Vector3.Max(b0.center + b0.extents, p0);
             return new Bounds((min + max) * 0.5f, max - min);
         }
 
         public static Bounds Union(in Bounds b0, in Bounds b1)
         {
-            Vector3 min = Vector3.Min(b0.min, b1.min);
-            Vector3 max = Vector3.Max(b0.max, b1.max);
+            Vector3 min = Vector3.Min(b0.center - b0.extents, b1.center - b1.extents);
+            Vector3 max = Vector3.Max(b0.center + b0.extents, b1.center + b1.extents);
             return new Bounds((min + max) * 0.5f, max - min);
         }
 

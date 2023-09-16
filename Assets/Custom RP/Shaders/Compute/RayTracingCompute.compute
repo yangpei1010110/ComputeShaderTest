@@ -18,25 +18,28 @@ void RayTracingCompute(uint3 id : SV_DispatchThreadID)
     Result.GetDimensions(width, height);
     float2 uv = (id.xy + 0.5) / float2(width, height) * 2.0 - 1.0;
     Ray ray = CreateCameraRays(uv);
-    Result[id.xy] = float4(ray.direction * 0.5 + 0.5, 1.0);
+    Result[id.xy] = float4((ray.direction).xy, 0.0, 1.0);
 
-    // if (id.x * width + id.y < BvhTreeCount)
-    float3 minDistance = FLT_MAX;
-    // for (int i = 0; i < BvhTreeCount; i++)
+    float minDistance = FLT_MAX;
+    for (int i = 0; i < BvhTreeCount; i++)
     {
-        // int index = id.x * width + id.y;
-        // index %= BvhTreeCount;
         BvhNode node = BvhTree[i];
-        float3 t0 = Vertices[Triangles[node.triangleIndex]];
-        float3 t1 = Vertices[Triangles[node.triangleIndex + 1]];
-        float3 t2 = Vertices[Triangles[node.triangleIndex + 2]];
-        float3 distance;
+        float3 t0 = Vertices[Triangles[node.triangleIndex * 3 + 0]];
+        float3 t1 = Vertices[Triangles[node.triangleIndex * 3 + 1]];
+        float3 t2 = Vertices[Triangles[node.triangleIndex * 3 + 2]];
+
+        float distance;
         if (RayIntersectsTriangle(ray, t0, t1, t2, distance))
         {
-            // RayIntersectsTriangle(ray, t0, t1, t2, distance);
-            minDistance = min(minDistance, distance);
-            // float3 normal = Normal(t0, t1, t2);
-            Result[id.xy] = float4(minDistance, 1.0);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                float3 normal = Normal(t0, t1, t2);
+                if (dot(ray.direction, -normal) > 0.0)
+                {
+                    Result[id.xy] = float4(normal, 1.0);
+                }
+            }
         }
     }
 }

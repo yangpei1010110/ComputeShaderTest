@@ -5,14 +5,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Tools;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 public class BvhBuild : MonoBehaviour
 {
     [Range(0, 20)] public int                             showDepth;
     public                ArrayTree<BvhNodeTools.BvhNode> _tree     = new();
     public                Vector3[]                       Vertices  = Array.Empty<Vector3>();
-    public                int[]                       Triangles = Array.Empty<int>();
+    public                int[]                           Triangles = Array.Empty<int>();
 
     void Start()
     {
@@ -22,7 +21,7 @@ public class BvhBuild : MonoBehaviour
         List<int> trianglesList = new();
         foreach (GameObject go in gameObject.scene.GetRootGameObjects())
         {
-            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList, ref verticesList,ref trianglesList);
+            BvhNodeTools.SubCollectAllBvhNodes(go, ref bvhNodeList, ref verticesList, ref trianglesList);
         }
 
         var _bvhNodes = bvhNodeList.ToArray();
@@ -31,11 +30,9 @@ public class BvhBuild : MonoBehaviour
         BvhNodeTools.Build(_bvhNodes, 0, _bvhNodes.Length, _tree, 0);
 
         sw.Stop();
-        Debug.Log($"三角形数量:{_bvhNodes.Length}, 构建时间:{sw.ElapsedMilliseconds} ms");
         if (_tree._arr.Length != 0)
         {
             var maxDept = _tree.depth;
-            Debug.Log($"maxDept:{maxDept}");
         }
     }
 
@@ -51,11 +48,11 @@ public class BvhBuild : MonoBehaviour
     {
         if (depth == showDepth && !tree.IsNull(index))
         {
-            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.size);
+            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.extents * 2f);
         }
         else if (tree.IsNull(tree.Left(index)) && tree.IsNull(tree.Right(index)) && depth < showDepth && !tree.IsNull(index))
         {
-            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.size);
+            Gizmos.DrawWireCube(tree[index].value.center, tree[index].value.extents * 2f);
         }
         else
         {

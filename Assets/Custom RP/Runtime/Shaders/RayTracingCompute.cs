@@ -21,14 +21,13 @@ namespace Custom_RP.Runtime.Shaders
         private                 ComputeBuffer? BvhTreeBuffer;
         private                 ComputeBuffer? BvhTreeVertices;
         private                 ComputeBuffer? BvhTreeTriangles;
-        private static          int RayTracingComputeKernel = -1;
+        private static          int            RayTracingComputeKernel = -1;
 
         private BvhBuild? _bvhBuild;
         private bool      _bvhIsChanged = true;
 
         private void OnEnable()
         {
-            Debug.Log($"Size of BvhNode: {UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>()}");
             _camera ??= GetComponent<Camera>();
             _bvhBuild ??= GetComponent<BvhBuild>();
             RenderPipelineManager.endCameraRendering += Render;
@@ -54,6 +53,7 @@ namespace Custom_RP.Runtime.Shaders
              || BvhTreeTriangles.count != _bvhBuild.Triangles.Length)
             {
                 BvhTreeBuffer ??= new ComputeBuffer(_bvhBuild._tree._arr.Length, UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>());
+                Debug.Log($"sizeof(BvhNodeTools.BvhNode) = {UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>()}");
                 BvhTreeVertices ??= new ComputeBuffer(_bvhBuild.Vertices.Length, UnsafeUtility.SizeOf<Vector3>());
                 BvhTreeTriangles ??= new ComputeBuffer(_bvhBuild.Triangles.Length, UnsafeUtility.SizeOf<int>());
             }
@@ -64,18 +64,26 @@ namespace Custom_RP.Runtime.Shaders
                 BvhTreeVertices.SetData(_bvhBuild.Vertices);
                 BvhTreeTriangles.SetData(_bvhBuild.Triangles);
                 _bvhIsChanged = false;
+                Debug.Log($"TrianglesCount:{BvhTreeTriangles.count}");
             }
 
             RayTracingShader.SetBuffer(RayTracingComputeKernel, Vertices, BvhTreeVertices);
             RayTracingShader.SetBuffer(RayTracingComputeKernel, Triangles, BvhTreeTriangles);
             RayTracingShader.SetBuffer(RayTracingComputeKernel, BvhTree, BvhTreeBuffer);
             RayTracingShader.SetInt(BvhTreeCount, _bvhBuild._tree._arr.Length);
+            RayTracingShader.SetInt(Shader.PropertyToID("TrianglesCount"), BvhTreeTriangles.count);
             RayTracingShader.SetMatrix(CameraToWorld, c.cameraToWorldMatrix);
             RayTracingShader.SetMatrix(CameraInverseProjection, c.projectionMatrix.inverse);
         }
 
         private void Render(ScriptableRenderContext src, Camera c)
         {
+            // if mode is game then run
+            // if (c.cameraType == CameraType.Game)
+            // {
+            //     return;
+            // }
+            
             if (RayTracingShader == null)
             {
                 return;

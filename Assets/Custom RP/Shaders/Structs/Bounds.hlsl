@@ -13,7 +13,7 @@ static inline void Init(inout Bounds result, in float3 c, in float3 e)
     result.extents = e;
 }
 
-static inline float3 GetSize(inout Bounds bounds)
+static inline float3 GetSize(in Bounds bounds)
 {
     return bounds.extents * 2;
 }
@@ -23,12 +23,12 @@ static inline void SetSize(inout Bounds bounds, in float3 size)
     bounds.extents = size * 0.5;
 }
 
-static inline float3 GetMin(inout Bounds bounds)
+static inline float3 GetMin(in Bounds bounds)
 {
     return bounds.center - bounds.extents;
 }
 
-static inline float3 GetMax(inout Bounds bounds)
+static inline float3 GetMax(in Bounds bounds)
 {
     return bounds.center + bounds.extents;
 }
