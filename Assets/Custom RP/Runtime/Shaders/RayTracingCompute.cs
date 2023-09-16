@@ -18,6 +18,9 @@ namespace Custom_RP.Runtime.Shaders
         private static readonly int            Vertices                = Shader.PropertyToID("Vertices");
         private static readonly int            Triangles               = Shader.PropertyToID("Triangles");
         private static readonly int            BvhTreeCount            = Shader.PropertyToID("BvhTreeCount");
+        private static readonly int            TrianglesCount          = Shader.PropertyToID("TrianglesCount");
+        private static readonly int            _SkyboxTexture          = Shader.PropertyToID("_SkyboxTexture");
+        public                  Texture2D      _skyboxTexture;
         private                 ComputeBuffer? BvhTreeBuffer;
         private                 ComputeBuffer? BvhTreeVertices;
         private                 ComputeBuffer? BvhTreeTriangles;
@@ -65,15 +68,17 @@ namespace Custom_RP.Runtime.Shaders
                 BvhTreeTriangles.SetData(_bvhBuild.Triangles);
                 _bvhIsChanged = false;
                 Debug.Log($"TrianglesCount:{BvhTreeTriangles.count}");
-            }
+                Debug.Log($"BvhTreeCount:{_bvhBuild._tree._arr.Length}");
 
-            RayTracingShader.SetBuffer(RayTracingComputeKernel, Vertices, BvhTreeVertices);
-            RayTracingShader.SetBuffer(RayTracingComputeKernel, Triangles, BvhTreeTriangles);
-            RayTracingShader.SetBuffer(RayTracingComputeKernel, BvhTree, BvhTreeBuffer);
-            RayTracingShader.SetInt(BvhTreeCount, _bvhBuild._tree._arr.Length);
-            RayTracingShader.SetInt(Shader.PropertyToID("TrianglesCount"), BvhTreeTriangles.count);
-            RayTracingShader.SetMatrix(CameraToWorld, c.cameraToWorldMatrix);
-            RayTracingShader.SetMatrix(CameraInverseProjection, c.projectionMatrix.inverse);
+                RayTracingShader.SetTexture(RayTracingComputeKernel, _SkyboxTexture, _skyboxTexture);
+                RayTracingShader.SetBuffer(RayTracingComputeKernel, Vertices, BvhTreeVertices);
+                RayTracingShader.SetBuffer(RayTracingComputeKernel, Triangles, BvhTreeTriangles);
+                RayTracingShader.SetBuffer(RayTracingComputeKernel, BvhTree, BvhTreeBuffer);
+                RayTracingShader.SetInt(BvhTreeCount, _bvhBuild._tree._arr.Length);
+                RayTracingShader.SetInt(TrianglesCount, BvhTreeTriangles.count);
+                RayTracingShader.SetMatrix(CameraToWorld, c.cameraToWorldMatrix);
+                RayTracingShader.SetMatrix(CameraInverseProjection, c.projectionMatrix.inverse);
+            }
         }
 
         private void Render(ScriptableRenderContext src, Camera c)
@@ -83,7 +88,7 @@ namespace Custom_RP.Runtime.Shaders
             // {
             //     return;
             // }
-            
+
             if (RayTracingShader == null)
             {
                 return;

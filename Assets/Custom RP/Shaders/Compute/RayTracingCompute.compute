@@ -20,26 +20,15 @@ void RayTracingCompute(uint3 id : SV_DispatchThreadID)
     Ray ray = CreateCameraRays(uv);
     Result[id.xy] = float4((ray.direction).xy, 0.0, 1.0);
 
-    float minDistance = FLT_MAX;
-    for (int i = 0; i < BvhTreeCount; i++)
+    RayHit hit;
+    if (Raycast(0, ray, hit))
     {
-        BvhNode node = BvhTree[i];
-        float3 t0 = Vertices[Triangles[node.triangleIndex * 3 + 0]];
-        float3 t1 = Vertices[Triangles[node.triangleIndex * 3 + 1]];
-        float3 t2 = Vertices[Triangles[node.triangleIndex * 3 + 2]];
-
-        float distance;
-        if (RayIntersectsTriangle(ray, t0, t1, t2, distance))
-        {
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                float3 normal = Normal(t0, t1, t2);
-                if (dot(ray.direction, -normal) > 0.0)
-                {
-                    Result[id.xy] = float4(normal, 1.0);
-                }
-            }
-        }
+        Result[id.xy] = float4(hit.normal, 1.0);
+    }
+    else
+    {
+        float theta = acos(ray.direction.y) / -PI;
+        float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
+        Result[id.xy] = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
     }
 }

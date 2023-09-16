@@ -7,7 +7,7 @@
 
 
 // AABB 光线 求交算法
-static inline bool Intersects(in Bounds bounds, in Ray ray)
+bool Intersects(Bounds bounds, Ray ray)
 {
     float tMin = 0, tMax = FLT_MAX;
     float3 boxMin = GetMin(bounds);
@@ -30,7 +30,7 @@ static inline bool Intersects(in Bounds bounds, in Ray ray)
 }
 
 // Möller–Trumbore 光线 三角形 求交算法
-static inline bool RayIntersectsTriangle(in Ray ray, in float3 t0, in float3 t1, in float3 t2, out float outIntersectionT)
+bool RayIntersectsTriangle(Ray ray, float3 t0, float3 t1, float3 t2, out float outIntersectionT)
 {
     const float EPSILON = 0.0000001;
     // outIntersectionT = 0;
@@ -75,19 +75,14 @@ static inline bool RayIntersectsTriangle(in Ray ray, in float3 t0, in float3 t1,
 }
 
 // TODO 实现 BVH 光线 求交算法
-static inline bool Raycast(in int treeIndex, in Ray ray, out RayHit hit)
+bool Raycast(int treeIndex, Ray ray, out RayHit hit)
 {
     struct StackData
     {
         int input_treeIndex;
-        Ray input_ray;
         RayHit input_hit;
-
         bool result;
 
-        int temp_index;
-        int temp_left;
-        int temp_right;
         BvhNode temp_node;
         bool temp_result1;
         RayHit temp_hit1;
@@ -97,112 +92,143 @@ static inline bool Raycast(in int treeIndex, in Ray ray, out RayHit hit)
         int state_handle;
     };
 
-    Init(hit, float3(0, 0, 0), 0, float3(0, 0, 0), 0);
+    hit = Make_RayHit(0, FLT_MAX, 0, 0);
 
-    const int MAX_STACK_SIZE = 32;
+    const int MAX_STACK_SIZE = 64;
     StackData stack[MAX_STACK_SIZE];
     int top = 0;
-    stack[top].input_treeIndex = treeIndex;
-    stack[top].input_ray = ray;
     stack[top].input_hit = hit;
+    stack[top].input_treeIndex = 0;
+    stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
+    stack[top].temp_result1 = 0;
+    stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+    stack[top].temp_result2 = 0;
+    stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+    stack[top].state_handle = 0;
     top++;
     int max = 0;
     while (top > 0)
     {
         max++;
-        if (max >= 40)
+        if (max >= 1024)
         {
+            // 最大迭代次数
             return false;
         }
-        int currentIndex = top - 1;
-        StackData data = stack[currentIndex];
-        switch (data.state_handle)
+
+        int current = top - 1;
+        switch (stack[current].state_handle)
         {
         case 0:
-            if (data.input_treeIndex >= BvhTreeCount)
             {
-                data.result = false;
-                stack[currentIndex] = data;
-                top--;
-                break;
-            }
-
-            data.temp_index = 0;
-            data.temp_left = data.temp_index * 2 + 1;
-            data.temp_right = data.temp_index * 2 + 2;
-            data.temp_node = BvhTree[data.temp_index];
-            if (data.temp_node.gameObjectId == 0)
-            {
-                // is leaf
-                // intersect with triangle
-                float3 v0 = Vertices[Triangles[data.temp_node.triangleIndex * 3 + 0]];
-                float3 v1 = Vertices[Triangles[data.temp_node.triangleIndex * 3 + 1]];
-                float3 v2 = Vertices[Triangles[data.temp_node.triangleIndex * 3 + 2]];
-                data.input_hit.normal = cross(v0 - v1, v0 - v2);
-                float oldDistance = data.input_hit.distance;
-                float distance = oldDistance;
-                if (RayIntersectsTriangle(ray, v0, v1, v2, distance))
+                if (stack[current].input_treeIndex >= BvhTreeCount)
                 {
-                    data.input_hit.distance = distance;
-                    data.result = true;
+                    // out side of tree
+                    stack[current].result = false;
+                    top--;
+                    break;
                 }
                 else
                 {
-                    data.input_hit.distance = oldDistance;
-                    data.result = false;
+                    // data init
+                    stack[current].temp_node = BvhTree[stack[current].input_treeIndex];
+                    // aabb 相交测试
+                    if (!Intersects(stack[current].temp_node.value, ray))
+                    {
+                        // 未命中 返回
+                        stack[current].result = false;
+                        top--;
+                        break;
+                    }
+                    else
+                    {
+                        // 命中 继续
+                        if (stack[current].temp_node.gameObjectId != 0)
+                        {
+                            // 叶子节点 有对象
+                            // intersect with triangle
+                            float3 v0 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 0]];
+                            float3 v1 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 1]];
+                            float3 v2 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 2]];
+                            float oldDistance = stack[current].input_hit.distance;
+                            float distance = oldDistance;
+                            if (RayIntersectsTriangle(ray, v0, v1, v2, distance))
+                            {
+                                stack[current].input_hit.position = ray.origin + ray.direction * distance;
+                                stack[current].input_hit.distance = distance;
+                                stack[current].result = true;
+                            }
+                            else
+                            {
+                                stack[current].input_hit.distance = oldDistance;
+                                stack[current].result = false;
+                            }
+                            stack[current].input_hit.normal = normalize(cross(v0 - v1, v0 - v2));
+                            top--;
+                            break;
+                        }
+                        else
+                        {
+                            // is node
+                            // intersect with aabb
+                            stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 1;
+                            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
+                            stack[top].temp_result1 = 0;
+                            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].temp_result2 = 0;
+                            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].state_handle = 0;
+                            top++;
+                            stack[current].state_handle = 1;
+                            break;
+                        }
+                    }
                 }
-                stack[currentIndex] = data;
-                top--;
-                break;
             }
 
-        // is node
-        // intersect with aabb
-            stack[top].input_treeIndex = data.temp_left;
-            stack[top].input_ray = data.input_ray;
-            top++;
-            data.state_handle = 1;
-            stack[currentIndex] = data;
             break;
         case 1:
-            data.temp_result1 = stack[top].result;
-            data.temp_hit1 = stack[top].input_hit;
-            stack[top].input_treeIndex = data.temp_right;
-            stack[top].input_ray = data.input_ray;
+            stack[current].temp_result1 = stack[top].result;
+            stack[current].temp_hit1 = stack[top].input_hit;
+            stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 2;
+            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
+            stack[top].temp_result1 = 0;
+            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].temp_result2 = 0;
+            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].state_handle = 0;
             top++;
-            data.state_handle = 2;
-            stack[currentIndex] = data;
+            stack[current].state_handle = 2;
             break;
         case 2:
-            data.temp_result2 = stack[top].result;
-            data.temp_hit2 = stack[top].input_hit;
-            if (data.temp_result1 && data.temp_result2)
+            stack[current].temp_result2 = stack[top].result;
+            stack[current].temp_hit2 = stack[top].input_hit;
+            stack[current].result = true;
+            if (stack[current].temp_result1 && stack[current].temp_result2)
             {
-                data.result = true;
-                if (data.temp_hit1.distance > data.temp_hit2.distance)
+                if (stack[current].temp_hit1.distance > stack[current].temp_hit2.distance)
                 {
-                    data.input_hit = data.temp_hit2;
+                    stack[current].input_hit = stack[current].temp_hit2;
                 }
                 else
                 {
-                    data.input_hit = data.temp_hit1;
+                    stack[current].input_hit = stack[current].temp_hit1;
                 }
             }
-            else if (!data.temp_result1 && data.temp_result2)
+            else if ((!stack[current].temp_result1) && stack[current].temp_result2)
             {
-                data.result = true;
-                data.input_hit = data.temp_hit2;
+                stack[current].input_hit = stack[current].temp_hit2;
             }
-            else if (data.temp_result1 && !data.temp_result2)
+            else if (stack[current].temp_result1 && (!stack[current].temp_result2))
             {
-                data.result = true;
-                data.input_hit = data.temp_hit1;
+                stack[current].input_hit = stack[current].temp_hit1;
             }
             else
             {
-                data.result = false;
+                stack[current].result = false;
             }
-            stack[currentIndex] = data;
             top--;
             break;
         default:

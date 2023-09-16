@@ -9,12 +9,14 @@ struct RayHit
     int materialId;
 };
 
-static inline void Init(inout RayHit result, in float3 position, in float distance, in float3 normal, in int materialId)
+static inline RayHit Make_RayHit( in float3 position, in float distance, in float3 normal, in int materialId)
 {
+    RayHit result;
     result.position = position;
     result.distance = distance;
     result.normal = normal;
     result.materialId = materialId;
+    return result;
 }
 
 #endif

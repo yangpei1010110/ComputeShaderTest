@@ -121,11 +121,6 @@ namespace Tools
                 vertices[i] = goPosition + (Vector3)(goLocalToWorldMatrix * vertices[i]);
             }
 
-            for (int i = 0; i < triangles.Length; i++)
-            {
-                
-            }
-
             for (int i = 0; i < triangles.Length / 3; i++)
             {
                 Vector3 t0 = vertices[triangles[i * 3 + 0]];
@@ -135,10 +130,15 @@ namespace Tools
                 {
                     value = GetBounds(t0, t1, t2),
                     gameObjectId = go.GetInstanceID(),
-                    triangleIndex = verticesList.Count + i,
+                    triangleIndex = trianglesList.Count / 3 + i,
                 });
             }
 
+
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                triangles[i] += verticesList.Count;
+            }
             verticesList.AddRange(vertices);
             trianglesList.AddRange(triangles);
             foreach (GameObject subGo in go.transform)

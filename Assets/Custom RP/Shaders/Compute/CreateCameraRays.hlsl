@@ -13,9 +13,7 @@ Ray CreateCameraRays(float2 uv)
     // Transform the direction from camera to world space and normalize
     direction = mul(_CameraToWorld, float4(direction, 0.0f)).xyz;
     direction = normalize(direction);
-    Ray ray;
-    Init(ray, origin, direction, 0.001f, 1000.0f);
-    return ray;
+    return Make_Ray(origin, direction, 0.001f, 1000.0f);
 }
 
 #endif

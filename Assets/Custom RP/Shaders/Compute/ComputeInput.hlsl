@@ -5,21 +5,24 @@
 #include "../Structs/Ray.hlsl"
 #include "../Structs/BvhNode.hlsl"
 
-RWStructuredBuffer<float3> Vertices;
-RWStructuredBuffer<int> Triangles;
-RWStructuredBuffer<BvhNode> BvhTree;
-int BvhTreeCount;
-int TrianglesCount;
-RWTexture2D<float4> Result;
-float4x4 _CameraToWorld;
-float4x4 _CameraInverseProjection;
+uniform Texture2D<float4> _SkyboxTexture;
+uniform SamplerState sampler_SkyboxTexture;
 
-float3 lookFrom;
-float3 lookAt;
-float3 vUp;
-float vFov;
-float aspectRatio;
-float aperture;
-float focusDistance;
+uniform RWStructuredBuffer<float3> Vertices;
+uniform RWStructuredBuffer<int> Triangles;
+uniform RWStructuredBuffer<BvhNode> BvhTree;
+uniform int BvhTreeCount;
+uniform int TrianglesCount;
+uniform RWTexture2D<float4> Result;
+uniform float4x4 _CameraToWorld;
+uniform float4x4 _CameraInverseProjection;
+
+// float3 lookFrom;
+// float3 lookAt;
+// float3 vUp;
+// float vFov;
+// float aspectRatio;
+// float aperture;
+// float focusDistance;
 
 #endif
