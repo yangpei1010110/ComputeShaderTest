@@ -10,12 +10,12 @@ static inline float InterleavedGradientNoise(float2 xy)
 
 static inline float RandomNextFloat(uint seed, float min, float max)
 {
-    return Hash(seed) * (max - min) + min;
+    return Hash(seed + _time.x * 1000) * (max - min) + min;
 }
 
 static inline float3 RandomFloat3(uint seed)
 {
-    return float3(Hash(seed), Hash(seed + 1), Hash(seed + 2));
+    return float3(Hash(seed + _time.x * 2000), Hash(seed + _time.x * 3000 + 1), Hash(seed + _time.x * 4000 + 2));
 }
 
 static inline float3 RandomFloat3(uint seed, float min, float max)
@@ -29,6 +29,7 @@ static inline float3 RandomInUnitSphere(uint seed)
     do
     {
         p = RandomFloat3(seed, -1, 1);
+        seed += 3;
     }
     while (length(p) >= 1);
     return p;

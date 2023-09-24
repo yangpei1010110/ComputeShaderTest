@@ -10,16 +10,21 @@ namespace Custom_RP.Runtime.Shaders
     {
         public                  ComputeShader? RayTracingShader;
         private                 RenderTexture? _target;
+        private                 RenderTexture? _realTarget;
         private                 Camera?        _camera;
         private static readonly int            CameraToWorld           = Shader.PropertyToID("_CameraToWorld");
         private static readonly int            CameraInverseProjection = Shader.PropertyToID("_CameraInverseProjection");
         private static readonly int            Result                  = Shader.PropertyToID("Result");
+        private static readonly int            RealResult              = Shader.PropertyToID("RealResult");
         private static readonly int            BvhTree                 = Shader.PropertyToID("BvhTree");
         private static readonly int            Vertices                = Shader.PropertyToID("Vertices");
         private static readonly int            Triangles               = Shader.PropertyToID("Triangles");
         private static readonly int            BvhTreeCount            = Shader.PropertyToID("BvhTreeCount");
         private static readonly int            TrianglesCount          = Shader.PropertyToID("TrianglesCount");
         private static readonly int            _SkyboxTexture          = Shader.PropertyToID("_SkyboxTexture");
+        private static readonly int            _debugDiffuseAlbedo     = Shader.PropertyToID("_debugDiffuseAlbedo");
+        private static readonly int            _time                   = Shader.PropertyToID("_time");
+        private                 Vector3        _debugDiffuseAlbedoColor;
         public                  Texture2D      _skyboxTexture;
         private                 ComputeBuffer? BvhTreeBuffer;
         private                 ComputeBuffer? BvhTreeVertices;
@@ -33,6 +38,10 @@ namespace Custom_RP.Runtime.Shaders
         {
             _camera ??= GetComponent<Camera>();
             _bvhBuild ??= GetComponent<BvhBuild>();
+            _debugDiffuseAlbedoColor = new Vector3(Random.value * Random.value,
+                                                   Random.value * Random.value,
+                                                   Random.value * Random.value);
+            _debugDiffuseAlbedoColor = Vector3.one * 0.5f;
             RenderPipelineManager.endCameraRendering += Render;
         }
 
@@ -75,6 +84,8 @@ namespace Custom_RP.Runtime.Shaders
                 RayTracingShader.SetInt(TrianglesCount, BvhTreeTriangles.count);
                 RayTracingShader.SetMatrix(CameraToWorld, c.cameraToWorldMatrix);
                 RayTracingShader.SetMatrix(CameraInverseProjection, c.projectionMatrix.inverse);
+                RayTracingShader.SetVector(_debugDiffuseAlbedo, _debugDiffuseAlbedoColor);
+                RayTracingShader.SetVector(_time, new Vector4(Time.time, Time.time * 0.25f, Time.time * 0.125f, 0));
             }
         }
 
@@ -97,7 +108,8 @@ namespace Custom_RP.Runtime.Shaders
 
             SetShaderParameters(c);
             InitRenderTexture();
-            RayTracingShader.SetTexture(0, Result, _target);
+            RayTracingShader.SetTexture(RayTracingComputeKernel, Result, _target);
+            RayTracingShader.SetTexture(RayTracingComputeKernel, RealResult, _realTarget);
             int threadGroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
             int threadGroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
             RayTracingShader.Dispatch(RayTracingComputeKernel, threadGroupsX, threadGroupsY, 1);
@@ -119,6 +131,14 @@ namespace Custom_RP.Runtime.Shaders
                     _target.enableRandomWrite = true;
                     _target.Create();
                 }
+            }
+
+            if (_realTarget == null)
+            {
+                _realTarget = new RenderTexture(Screen.width, Screen.height, 0,
+                                                RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                _realTarget.enableRandomWrite = true;
+                _realTarget.Create();
             }
         }
     }

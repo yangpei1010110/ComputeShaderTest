@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Tools
 {
@@ -38,6 +39,7 @@ namespace Tools
             }
             else if (length == 1)
             {
+                tree[treeIndex] = arr[start];
                 tree[treeIndex].value = arr[start].value;
                 tree[treeIndex].gameObjectId = arr[start].gameObjectId;
                 tree[treeIndex].triangleIndex = arr[start].triangleIndex;
@@ -127,6 +129,7 @@ namespace Tools
             {
                 triangles[i] += verticesList.Count;
             }
+
             verticesList.AddRange(vertices);
             trianglesList.AddRange(triangles);
             foreach (GameObject subGo in go.transform)

@@ -14,8 +14,11 @@ uniform RWStructuredBuffer<BvhNode> BvhTree;
 uniform int BvhTreeCount;
 uniform int TrianglesCount;
 uniform RWTexture2D<float4> Result;
+uniform RWTexture2D<float4> RealResult;
 uniform float4x4 _CameraToWorld;
 uniform float4x4 _CameraInverseProjection;
+uniform float3 _debugDiffuseAlbedo;
+uniform float4 _time;
 
 // float3 lookFrom;
 // float3 lookAt;

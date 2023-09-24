@@ -16,19 +16,22 @@ void RayTracingCompute(uint3 id : SV_DispatchThreadID)
 {
     uint width, height;
     Result.GetDimensions(width, height);
-    float2 uv = (id.xy + 0.5) / float2(width, height) * 2.0 - 1.0;
+    float2 uv = (id.xy + 0.5 + float2(RandomNextFloat(id, -1.0f, 1.0f), RandomNextFloat(id * 1000, -1.0f, 1.0f))) / float2(width, height) * 2.0 - 1.0;
+    // uv += float2(RandomNextFloat(id, -0.5f, 0.5f), RandomNextFloat(id * 1000, -0.5f, 0.5f));
     Ray ray = CreateCameraRays(uv);
     Result[id.xy] = float4((ray.direction).xy, 0.0, 1.0);
 
-    RayHit hit;
-    if (Raycast(0, ray, hit))
-    {
-        Result[id.xy] = float4(hit.normal, 1.0);
-    }
-    else
-    {
-        float theta = acos(ray.direction.y) / -PI;
-        float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
-        Result[id.xy] = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
-    }
+    // RayHit hit = Make_RayHit(float3(0.0, 0.0, 0.0), 0.0, float3(0.0, 0.0, 0.0), 0);
+    // if (Raycast(0, ray, hit))
+    // {
+    //     Result[id.xy] = float4(hit.normal, 1.0);
+    // }
+    // else
+    // {
+    //     float theta = acos(ray.direction.y) / -PI;
+    //     float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
+    //     Result[id.xy] = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
+    // }
+    RealResult[id.xy] += float4(RayColor(ray, 50), 1.0);
+    Result[id.xy] = RealResult[id.xy] / RealResult[id.xy].w;
 }

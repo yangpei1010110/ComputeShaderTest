@@ -4,7 +4,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "../Compute/ComputeInput.hlsl"
 #include "RayHit.hlsl"
-
+#include "../Common/VectorMath.hlsl"
 
 // AABB 光线 求交算法
 bool Intersects(Bounds bounds, Ray ray)
@@ -236,6 +236,133 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
         }
     }
     hit = stack[0].input_hit;
+    return stack[0].result;
+}
+
+float3 RayColor(Ray ray, int depth)
+{
+    struct StackData
+    {
+        Ray input_ray;
+        int input_depth;
+        float3 result;
+
+        bool temp_result;
+
+        RayHit temp_hit;
+        float3 temp_attenuation;
+        Ray temp_scattered;
+
+        int stateHandle;
+    };
+    const int MAX_STACK_SIZE = 64;
+    StackData stack[MAX_STACK_SIZE];
+    int top = 0;
+
+    stack[top].input_ray = ray;
+    stack[top].input_depth = depth;
+    stack[top].result = 0;
+    stack[top].stateHandle = 0;
+
+    top++;
+    int max = 0;
+    while (top > 0)
+    {
+        max++;
+        if (max >= 1024)
+        {
+            // 最大迭代次数
+            return false;
+        }
+        int current = top - 1;
+        switch (stack[current].stateHandle)
+        {
+        case 0:
+            {
+                if (Raycast(0, stack[current].input_ray, stack[current].temp_hit))
+                {
+                    if (stack[current].input_depth <= 0)
+                    {
+                        stack[current].result = 0;
+                        top--;
+                        break;
+                    }
+                    else
+                    {
+                        float3 attenuation;
+                        Ray scattered = Make_Ray(0, 0, 0, 1000);
+                        if (DiffuseScatter(stack[current].input_ray, stack[current].temp_hit, attenuation, scattered))
+                        {
+                            stack[current].temp_attenuation = attenuation;
+                            stack[current].temp_scattered = scattered;
+                            stack[top].input_ray = stack[current].temp_scattered;
+                            stack[top].input_depth = stack[current].input_depth - 1;
+                            stack[current].stateHandle = 1;
+                            top++;
+                            break;
+                        }
+                        else
+                        {
+                            stack[current].result = 0;
+                            top--;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // float3 unitDirection = normalize(stack[current].input_ray.direction);
+                    // float t = 0.5f * (unitDirection.y + 1.0f);
+                    // stack[current].result = (1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0);
+                    // top--;
+                    // break;
+
+                    float theta = acos(ray.direction.y) / -PI;
+                    float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
+                    stack[current].result = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
+                    top--;
+                    break;
+                }
+            }
+            break;
+        case 1:
+            {
+                stack[current].result = stack[current].temp_attenuation * stack[top].result;
+                top--;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    // RayHit hit = Make_RayHit(0, FLT_MAX, 0, 0);
+    // if (Raycast(0, ray, hit))
+    // {
+    //     if (depth < 10)
+    //     {
+    //         float3 attenuation = 0;
+    //         Ray scattered = Make_Ray(0, 0, 0, 1000);
+    //         if (DiffuseScatter(ray, hit, attenuation, scattered))
+    //         {
+    //             return attenuation * RayColor(scattered, depth + 1);
+    //         }
+    //         else
+    //         {
+    //             return 0;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         return 0;
+    //     }
+    // }
+    // else
+    // {
+    //     float theta = acos(ray.direction.y) / -PI;
+    //     float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
+    //     return _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
+    // }
     return stack[0].result;
 }
 
