@@ -24,6 +24,8 @@ namespace Custom_RP.Runtime.Shaders
         private static readonly int            _SkyboxTexture          = Shader.PropertyToID("_SkyboxTexture");
         private static readonly int            _debugDiffuseAlbedo     = Shader.PropertyToID("_debugDiffuseAlbedo");
         private static readonly int            _time                   = Shader.PropertyToID("_time");
+        private static readonly int            _seed                   = Shader.PropertyToID("_seed");
+        private static readonly int _frameCount = Shader.PropertyToID("_frameCount");
         private                 Vector3        _debugDiffuseAlbedoColor;
         public                  Texture2D      _skyboxTexture;
         private                 ComputeBuffer? BvhTreeBuffer;
@@ -42,6 +44,18 @@ namespace Custom_RP.Runtime.Shaders
                                                    Random.value * Random.value,
                                                    Random.value * Random.value);
             _debugDiffuseAlbedoColor = Vector3.one * 0.5f;
+            if (_realTarget != null)
+            {
+                _realTarget.Release();
+            }
+            else
+            {
+                _realTarget = new RenderTexture(Screen.width, Screen.height, 0,
+                                                RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                _realTarget.enableRandomWrite = true;
+                _realTarget.Create();
+            }
+
             RenderPipelineManager.endCameraRendering += Render;
         }
 
@@ -86,6 +100,8 @@ namespace Custom_RP.Runtime.Shaders
                 RayTracingShader.SetMatrix(CameraInverseProjection, c.projectionMatrix.inverse);
                 RayTracingShader.SetVector(_debugDiffuseAlbedo, _debugDiffuseAlbedoColor);
                 RayTracingShader.SetVector(_time, new Vector4(Time.time, Time.time * 0.25f, Time.time * 0.125f, 0));
+                RayTracingShader.SetFloat(_seed, Random.value);
+                RayTracingShader.SetInt(_frameCount, Time.frameCount);
             }
         }
 

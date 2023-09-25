@@ -92,7 +92,7 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
         int state_handle;
     };
 
-    hit = Make_RayHit(0, FLT_MAX, 0, 0);
+    hit = Make_RayHit(0, FLT_MAX, 0);
 
     const int MAX_STACK_SIZE = 64;
     StackData stack[MAX_STACK_SIZE];
@@ -101,21 +101,13 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
     stack[top].input_treeIndex = 0;
     stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
     stack[top].temp_result1 = 0;
-    stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+    stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0);
     stack[top].temp_result2 = 0;
-    stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+    stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0);
     stack[top].state_handle = 0;
     top++;
-    int max = 0;
     while (top > 0)
     {
-        max++;
-        if (max >= 1024)
-        {
-            // 最大迭代次数
-            return false;
-        }
-
         int current = top - 1;
         switch (stack[current].state_handle)
         {
@@ -172,12 +164,12 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
                             // is node
                             // intersect with aabb
                             stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 1;
-                            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0);
                             stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
                             stack[top].temp_result1 = 0;
-                            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0);
                             stack[top].temp_result2 = 0;
-                            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+                            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0);
                             stack[top].state_handle = 0;
                             top++;
                             stack[current].state_handle = 1;
@@ -192,12 +184,12 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
             stack[current].temp_result1 = stack[top].result;
             stack[current].temp_hit1 = stack[top].input_hit;
             stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 2;
-            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].input_hit = Make_RayHit(0, FLT_MAX, 0);
             stack[top].temp_node = Make_BvhNode(Make_Bounds(0, 0), 0, 0, 0);
             stack[top].temp_result1 = 0;
-            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].temp_hit1 = Make_RayHit(0, FLT_MAX, 0);
             stack[top].temp_result2 = 0;
-            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0, 0);
+            stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0);
             stack[top].state_handle = 0;
             top++;
             stack[current].state_handle = 2;
@@ -247,11 +239,9 @@ float3 RayColor(Ray ray, int depth)
         int input_depth;
         float3 result;
 
-        bool temp_result;
-
-        RayHit temp_hit;
+        // RayHit temp_hit;
         float3 temp_attenuation;
-        Ray temp_scattered;
+        // Ray temp_scattered;
 
         int stateHandle;
     };
@@ -262,6 +252,7 @@ float3 RayColor(Ray ray, int depth)
     stack[top].input_ray = ray;
     stack[top].input_depth = depth;
     stack[top].result = 0;
+    stack[top].temp_attenuation = 0;
     stack[top].stateHandle = 0;
 
     top++;
@@ -269,18 +260,20 @@ float3 RayColor(Ray ray, int depth)
     while (top > 0)
     {
         max++;
-        if (max >= 1024)
+        if (max >= 256)
         {
             // 最大迭代次数
-            return false;
+            return 0;
         }
         int current = top - 1;
         switch (stack[current].stateHandle)
         {
         case 0:
             {
-                if (Raycast(0, stack[current].input_ray, stack[current].temp_hit))
+                RayHit hit = Create_RayHit();
+                if (Raycast(0, stack[current].input_ray, hit))
                 {
+                    // stack[current].temp_hit = hit;
                     if (stack[current].input_depth <= 0)
                     {
                         stack[current].result = 0;
@@ -289,14 +282,16 @@ float3 RayColor(Ray ray, int depth)
                     }
                     else
                     {
-                        float3 attenuation;
-                        Ray scattered = Make_Ray(0, 0, 0, 1000);
-                        if (DiffuseScatter(stack[current].input_ray, stack[current].temp_hit, attenuation, scattered))
+                        float3 attenuation = 0;
+                        Ray scattered = Make_Ray(0, 0);
+                        if (DiffuseScatter(stack[current].input_ray, hit, attenuation, scattered))
                         {
                             stack[current].temp_attenuation = attenuation;
-                            stack[current].temp_scattered = scattered;
-                            stack[top].input_ray = stack[current].temp_scattered;
+                            stack[top].input_ray = scattered;
                             stack[top].input_depth = stack[current].input_depth - 1;
+                            stack[top].result = 0;
+                            stack[top].temp_attenuation = 0;
+                            stack[top].stateHandle = 0;
                             stack[current].stateHandle = 1;
                             top++;
                             break;
@@ -311,17 +306,17 @@ float3 RayColor(Ray ray, int depth)
                 }
                 else
                 {
-                    // float3 unitDirection = normalize(stack[current].input_ray.direction);
-                    // float t = 0.5f * (unitDirection.y + 1.0f);
-                    // stack[current].result = (1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0);
-                    // top--;
-                    // break;
-
-                    float theta = acos(ray.direction.y) / -PI;
-                    float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
-                    stack[current].result = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
+                    float3 unitDirection = normalize(stack[current].input_ray.direction);
+                    float t = 0.5f * (unitDirection.y + 1.0f);
+                    stack[current].result = (1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0);
                     top--;
                     break;
+
+                    // float theta = acos(ray.direction.y) / -PI;
+                    // float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
+                    // stack[current].result = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
+                    // top--;
+                    // break;
                 }
             }
             break;
@@ -335,34 +330,6 @@ float3 RayColor(Ray ray, int depth)
             break;
         }
     }
-
-    // RayHit hit = Make_RayHit(0, FLT_MAX, 0, 0);
-    // if (Raycast(0, ray, hit))
-    // {
-    //     if (depth < 10)
-    //     {
-    //         float3 attenuation = 0;
-    //         Ray scattered = Make_Ray(0, 0, 0, 1000);
-    //         if (DiffuseScatter(ray, hit, attenuation, scattered))
-    //         {
-    //             return attenuation * RayColor(scattered, depth + 1);
-    //         }
-    //         else
-    //         {
-    //             return 0;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         return 0;
-    //     }
-    // }
-    // else
-    // {
-    //     float theta = acos(ray.direction.y) / -PI;
-    //     float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5;
-    //     return _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float3(phi, theta, 0.0), 0.0);
-    // }
     return stack[0].result;
 }
 

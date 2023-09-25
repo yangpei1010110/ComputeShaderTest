@@ -19,13 +19,7 @@ uniform float4x4 _CameraToWorld;
 uniform float4x4 _CameraInverseProjection;
 uniform float3 _debugDiffuseAlbedo;
 uniform float4 _time;
-
-// float3 lookFrom;
-// float3 lookAt;
-// float3 vUp;
-// float vFov;
-// float aspectRatio;
-// float aperture;
-// float focusDistance;
+uniform int _frameCount;
+uniform float _seed;
 
 #endif

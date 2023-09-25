@@ -52,10 +52,10 @@ float3 Fresnel(float3 v, float3 n, float eta)
 
 bool DiffuseScatter(Ray rIn, RayHit rec, out float3 attenuation, out Ray scattered)
 {
-    attenuation = 0;
-    float3 scatterDirection = rec.normal + RandomInUnitSphere((uint)(rec.position.x + rec.position.y * 1000));
-    scatterDirection = NearZero(scatterDirection) ? rec.normal : scatterDirection;
-    scattered = Make_Ray(rec.position, scatterDirection, rIn.tMin, rIn.tMax);
+    // float3 scatterDirection = rec.normal + RandomInUnitSphere((uint)(rec.position.x + rec.position.y * 10 + rec.position.z * 100));
+    // scatterDirection = NearZero(scatterDirection) ? rec.normal : scatterDirection;
+    float3 scatterDirection = SampleHemisphere(rec.normal);
+    scattered = Make_Ray(rec.position, scatterDirection);
     attenuation = _debugDiffuseAlbedo;
     return true;
 }
