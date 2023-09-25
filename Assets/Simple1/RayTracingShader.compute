@@ -2,6 +2,15 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 
+struct Sphere
+{
+    float3 position;
+    float radius;
+    float3 albedo;
+    float3 specular;
+};
+uniform StructuredBuffer<Sphere> _Spheres;
+
 uniform RWStructuredBuffer<float4> _SphereBuffer;
 uniform uint _SphereBufferCount;
 uniform Texture2D<float4> _SkyboxTexture;
@@ -10,6 +19,7 @@ uniform RWTexture2D<float4> Result;
 uniform float4x4 _CameraToWorld;
 uniform float4x4 _CameraInverseProjection;
 uniform float2 _PixelOffset;
+uniform float4 _DirectionalLight;
 
 struct Ray
 {
@@ -101,13 +111,21 @@ float3 Shade(inout Ray ray, RayHit hit)
 {
     if (hit.distance < 1.#INF)
     {
-        float3 specular = float3(0.6f, 0.6f, 0.6f);
+        float3 albedo = float3(0.8f, 0.8f, 0.8f);
+        float3 specular = float3(0.04f, 0.04f, 0.04f);
         // Reflect the ray and multiply energy with specular reflection
         ray.origin = hit.position + hit.normal * 0.001f;
         ray.direction = reflect(ray.direction, hit.normal);
         ray.energy *= specular;
         // Return nothing
-        return float3(0.0f, 0.0f, 0.0f);
+        bool shadow = false;
+        Ray shadowRay = CreateRay(hit.position + hit.normal * 0.001f, -1 * _DirectionalLight.xyz);
+        RayHit shadowHit = Trace(shadowRay);
+        if (shadowHit.distance != 1.#INF)
+        {
+            return float3(0.0f, 0.0f, 0.0f);
+        }
+        return saturate(dot(hit.normal, _DirectionalLight.xyz) * -1) * _DirectionalLight.w * albedo;
     }
     else
     {

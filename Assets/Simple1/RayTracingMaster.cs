@@ -5,6 +5,7 @@ using System.Linq;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
@@ -12,6 +13,16 @@ namespace Simple1
 {
     public class RayTracingMaster : MonoBehaviour
     {
+        public struct Sphere
+        {
+            float3 position;
+            float  radius;
+            float3 albedo;
+            float3 specular;
+        };
+
+        public Light? DirectionalLight;
+
         public  Texture2D?     SkyboxTexture;
         public  ComputeShader? RayTracingShader;
         private RenderTexture? _target;
@@ -85,7 +96,11 @@ namespace Simple1
                         i++;
                     }
 
-                    _SphereComputeBuffer = new ComputeBuffer(_sphereData.Count, UnsafeUtility.SizeOf<float4>());
+                    if (_SphereComputeBuffer == null)
+                    {
+                        _SphereComputeBuffer = new ComputeBuffer(_sphereData.Count, UnsafeUtility.SizeOf<float4>());
+                    }
+
                     _SphereComputeBuffer.SetData(_sphereDataArray);
                 }
 
@@ -145,6 +160,10 @@ namespace Simple1
 
             RayTracingShader.SetBuffer(RayTracingComputeKernel, _SphereBuffer, _SphereComputeBuffer);
             RayTracingShader.SetInt(_SphereBufferCount, _sphereDataArray.Length);
+
+            float3 l = DirectionalLight == null ? Vector3.zero : DirectionalLight.transform.forward;
+            float i = DirectionalLight == null ? 0 : DirectionalLight.intensity;
+            RayTracingShader.SetVector("_DirectionalLight", new float4(l, i));
         }
 
         private void InitRenderTexture()
