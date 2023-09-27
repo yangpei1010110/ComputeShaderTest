@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Tools
+namespace Resource.Scripts.Tools
 {
     public static class EvenlyDistributingOnSphere
     {

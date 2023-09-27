@@ -3,9 +3,8 @@ using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
-namespace Tools
+namespace Resource.Scripts.Tools
 {
     public static class BvhNodeTools
     {

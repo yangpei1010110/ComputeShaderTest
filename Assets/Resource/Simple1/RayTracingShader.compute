@@ -9,10 +9,11 @@ struct Sphere
     float3 albedo;
     float3 specular;
 };
-uniform StructuredBuffer<Sphere> _Spheres;
 
-uniform RWStructuredBuffer<float4> _SphereBuffer;
-uniform uint _SphereBufferCount;
+uniform StructuredBuffer<Sphere> _NewSphereBuffer;
+
+// uniform RWStructuredBuffer<float4> _SphereBuffer;
+// uniform uint _SphereBufferCount;
 uniform Texture2D<float4> _SkyboxTexture;
 uniform SamplerState sampler_SkyboxTexture;
 uniform RWTexture2D<float4> Result;
@@ -42,6 +43,8 @@ struct RayHit
     float3 position;
     float distance;
     float3 normal;
+    float3 albedo;
+    float3 specular;
 };
 
 RayHit CreateRayHit()
@@ -50,6 +53,8 @@ RayHit CreateRayHit()
     hit.position = float3(0.0f, 0.0f, 0.0f);
     hit.distance = 1.#INF;
     hit.normal = float3(0.0f, 0.0f, 0.0f);
+    hit.albedo = float3(0.5f, 0.5f, 0.5f);
+    hit.specular = float3(0.04f, 0.04f, 0.04f);
     return hit;
 }
 
@@ -77,12 +82,12 @@ void IntersectGroundPlane(Ray ray, inout RayHit bestHit)
     }
 }
 
-void IntersectSphere(Ray ray, inout RayHit bestHit, float4 sphere)
+void IntersectSphere(Ray ray, inout RayHit bestHit, Sphere sphere)
 {
     // Calculate distance along the ray where the sphere is intersected
-    float3 d = ray.origin - sphere.xyz;
+    float3 d = ray.origin - sphere.position;
     float p1 = -dot(ray.direction, d);
-    float p2sqr = p1 * p1 - dot(d, d) + sphere.w * sphere.w;
+    float p2sqr = p1 * p1 - dot(d, d) + sphere.radius * sphere.radius;
     if (p2sqr < 0)
         return;
     float p2 = sqrt(p2sqr);
@@ -91,7 +96,9 @@ void IntersectSphere(Ray ray, inout RayHit bestHit, float4 sphere)
     {
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
-        bestHit.normal = normalize(bestHit.position - sphere.xyz);
+        bestHit.normal = normalize(bestHit.position - sphere.position);
+        bestHit.albedo = sphere.albedo;
+        bestHit.specular = sphere.specular;
     }
 }
 
@@ -99,11 +106,17 @@ RayHit Trace(Ray ray)
 {
     RayHit bestHit = CreateRayHit();
     IntersectGroundPlane(ray, bestHit);
-    // Add a floating unit sphere
-    for (int i = 0; i < _SphereBufferCount; ++i)
+    uint numSpheres, stride;
+    _NewSphereBuffer.GetDimensions(numSpheres, stride);
+    for (int i = 0; i < numSpheres; ++i)
     {
-        IntersectSphere(ray, bestHit, _SphereBuffer[i]);
+        IntersectSphere(ray, bestHit, _NewSphereBuffer[i]);
     }
+    // Add a floating unit sphere
+    // for (int i = 0; i < _SphereBufferCount; ++i)
+    // {
+    //     IntersectSphere(ray, bestHit, _SphereBuffer[i]);
+    // }
     return bestHit;
 }
 
@@ -111,12 +124,12 @@ float3 Shade(inout Ray ray, RayHit hit)
 {
     if (hit.distance < 1.#INF)
     {
-        float3 albedo = float3(0.8f, 0.8f, 0.8f);
-        float3 specular = float3(0.04f, 0.04f, 0.04f);
+        // float3 albedo = float3(0.8f, 0.8f, 0.8f);
+        // float3 specular = float3(0.04f, 0.04f, 0.04f);
         // Reflect the ray and multiply energy with specular reflection
         ray.origin = hit.position + hit.normal * 0.001f;
         ray.direction = reflect(ray.direction, hit.normal);
-        ray.energy *= specular;
+        ray.energy *= hit.specular;
         // Return nothing
         bool shadow = false;
         Ray shadowRay = CreateRay(hit.position + hit.normal * 0.001f, -1 * _DirectionalLight.xyz);
@@ -125,7 +138,7 @@ float3 Shade(inout Ray ray, RayHit hit)
         {
             return float3(0.0f, 0.0f, 0.0f);
         }
-        return saturate(dot(hit.normal, _DirectionalLight.xyz) * -1) * _DirectionalLight.w * albedo;
+        return saturate(dot(hit.normal, _DirectionalLight.xyz) * -1) * _DirectionalLight.w * hit.albedo;
     }
     else
     {

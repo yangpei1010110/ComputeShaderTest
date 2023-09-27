@@ -1,10 +1,11 @@
 #nullable enable
-using Tools;
+using Resource.Scripts;
+using Resource.Scripts.Tools;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Custom_RP.Runtime.Shaders
+namespace Resource.Custom_RP.Runtime.Shaders
 {
     public class RayTracingCompute : MonoBehaviour
     {

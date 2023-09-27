@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Tools.Material
+namespace Resource.Scripts.Tools.Material
 {
     public struct Diffuse
     {

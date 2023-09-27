@@ -1,9 +1,8 @@
 #nullable enable
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Custom_RP.Runtime
+namespace Resource.Custom_RP.Runtime
 {
     public class CustomRenderPipeline : RenderPipeline
     {

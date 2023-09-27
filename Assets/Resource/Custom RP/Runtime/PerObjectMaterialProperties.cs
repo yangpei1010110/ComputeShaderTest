@@ -1,8 +1,7 @@
 #nullable enable
-using System;
 using UnityEngine;
 
-namespace Custom_RP.Runtime
+namespace Resource.Custom_RP.Runtime
 {
     [DisallowMultipleComponent]
     public class PerObjectMaterialProperties : MonoBehaviour
