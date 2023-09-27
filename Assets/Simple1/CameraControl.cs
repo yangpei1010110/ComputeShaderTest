@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resource.Simple1
+namespace Simple1
 {
     public class CameraControl : MonoBehaviour
     {

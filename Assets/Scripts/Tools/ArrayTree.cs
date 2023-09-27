@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 
-namespace Resource.Scripts.Tools
+namespace Tools
 {
     public class ArrayTree<T>
     {

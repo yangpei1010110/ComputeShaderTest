@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
-namespace Resource.Simple1
+namespace Simple1
 {
     public class RayTracingMaster : MonoBehaviour
     {

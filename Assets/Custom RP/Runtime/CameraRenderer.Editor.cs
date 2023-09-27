@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Resource.Custom_RP.Runtime
+namespace Custom_RP.Runtime
 {
     public partial class CameraRenderer
     {

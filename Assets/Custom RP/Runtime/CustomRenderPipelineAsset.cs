@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Resource.Custom_RP.Runtime
+namespace Custom_RP.Runtime
 {
     [CreateAssetMenu(menuName = "Rendering/Custom Render Pipeline")]
     public class CustomRenderPipelineAsset : RenderPipelineAsset

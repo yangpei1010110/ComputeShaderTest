@@ -806,7 +806,8 @@ PlayerSettings:
   platformArchitecture: {}
   scriptingBackend:
     Standalone: 1
-  il2cppCompilerConfiguration: {}
+  il2cppCompilerConfiguration:
+    Standalone: 0
   il2cppCodeGeneration:
     Standalone: 1
   managedStrippingLevel:

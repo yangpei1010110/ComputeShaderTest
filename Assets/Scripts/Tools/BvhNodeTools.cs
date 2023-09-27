@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Resource.Scripts.Tools
+namespace Tools
 {
     public static class BvhNodeTools
     {
