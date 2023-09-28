@@ -22,7 +22,7 @@ namespace Simple1
         private static          ComputeBuffer? _NewSphereComputeBuffer;
         public                  int            MaxCount = 500;
         public                  float          MaxRange = 30f;
-        public                  float          MaxSize  = 5f;
+        public                  float2         MaxSize  = new float2(0.5f, 3f);
 
         public Light? DirectionalLight;
 
@@ -68,14 +68,14 @@ namespace Simple1
 
             // max count 1000
             {
-                // int maxCount = 200;
-                // float range = 10f;
-                // float size = 10f;
+                int maxTryCount = 10000;
+                int maxTryIndex = 0;
                 Sphere[] spheres = new Sphere[MaxCount];
                 int index = 0;
                 do
                 {
-                    var radius = Random.value * MaxSize;
+                    maxTryIndex += 1;
+                    var radius = MaxSize.x + Random.value * (MaxSize.y - MaxSize.x);
                     var c = RadianToVector2(Random.value * math.PI * 2f) * math.max(1f, MaxRange - radius) * Random.value;
                     var center = new float3(c.x, radius, c.y);
 
@@ -100,9 +100,10 @@ namespace Simple1
                         spheres[index].specular = isMetal ? new float3(color.r, color.g, color.b) : 0.04f;
                         index++;
                     }
-                } while (index < MaxCount);
+                } while (index < MaxCount && maxTryIndex < maxTryCount);
 
-                _NewSphereComputeBuffer = new ComputeBuffer(MaxCount, UnsafeUtility.SizeOf<Sphere>());
+                Array.Resize(ref spheres, index);
+                _NewSphereComputeBuffer = new ComputeBuffer(index, UnsafeUtility.SizeOf<Sphere>());
                 _NewSphereComputeBuffer.SetData(spheres);
             }
 
@@ -225,28 +226,25 @@ namespace Simple1
                 {
                     _target.Release();
                 }
-                else
-                {
-                    _target = new RenderTexture(Screen.width, Screen.height, 0,
-                                                RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-                    _target.enableRandomWrite = true;
-                    _target.Create();
-                }
+
+                _target = new RenderTexture(Screen.width, Screen.height, 0,
+                                            RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                _target.enableRandomWrite = true;
+                _target.Create();
             }
 
             if (_finalTarget == null || _finalTarget.width != Screen.width || _finalTarget.height != Screen.height)
             {
-                if (_finalTarget == null)
-                {
-                    _finalTarget = new RenderTexture(Screen.width, Screen.height, 0,
-                                                     RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-                    _finalTarget.enableRandomWrite = true;
-                    _finalTarget.Create();
-                }
-                else
+                if (_finalTarget != null)
                 {
                     _finalTarget.Release();
                 }
+
+                _finalTarget = new RenderTexture(Screen.width, Screen.height, 0,
+                                                 RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                _finalTarget.enableRandomWrite = true;
+                _finalTarget.Create();
+                _currentSample = 0;
             }
         }
     }

@@ -24,7 +24,7 @@ float InterleavedGradientNoise(float2 xy)
 float rand()
 {
     float result = frac(sin(_seed / 100.0f * dot(float2(0.5, 0.5), float2(12.9898f, 78.233f))) * 43758.5453f);
-    _seed = result;
+    _seed += 1.0f;
     return result;
 }
 
