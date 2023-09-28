@@ -92,13 +92,12 @@ namespace Simple1
 
                     if (!isCollision)
                     {
-                        spheres[index] = new Sphere
-                        {
-                            position = center,
-                            radius = radius,
-                            albedo = new float3(Random.value, Random.value, Random.value),
-                            specular = new float3(Random.value, Random.value, Random.value),
-                        };
+                        spheres[index].position = center;
+                        spheres[index].radius = radius;
+                        var color = Random.ColorHSV();
+                        var isMetal = Random.value < 0.5f;
+                        spheres[index].albedo = isMetal ? float3.zero : new float3(color.r, color.g, color.b);
+                        spheres[index].specular = isMetal ? new float3(color.r, color.g, color.b) : 0.04f;
                         index++;
                     }
                 } while (index < MaxCount);

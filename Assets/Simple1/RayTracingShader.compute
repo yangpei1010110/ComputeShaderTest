@@ -167,7 +167,8 @@ void RayTracingCompute(uint3 id : SV_DispatchThreadID)
     for (int i = 0; i < 8; i++)
     {
         RayHit hit = Trace(ray);
-        result += Shade(ray, hit);
+        float energy = ray.energy;
+        result += energy * Shade(ray, hit);
         if (!any(ray.energy))
         {
             break;
