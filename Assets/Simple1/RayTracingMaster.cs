@@ -103,7 +103,9 @@ namespace Simple1
                         spheres[index].specular = isMetal ? new float3(color.r, color.g, color.b) : 0.04f;
                         spheres[index].smoothness = isMetal ? Random.value : 0.04f;
                         var emissionColor = Random.ColorHSV();
-                        spheres[index].emission = Random.value < 0.1f ? new float3(emissionColor.r, emissionColor.g, emissionColor.b) : 0f;
+                        spheres[index].emission = Random.value < 0.1f
+                            ? new float3(math.max(0.25f, emissionColor.r), math.max(0.25f, emissionColor.g), math.max(0.25f, emissionColor.b))
+                            : 0f;
                         index++;
                     }
                 } while (index < MaxCount && maxTryIndex < maxTryCount);
@@ -213,7 +215,7 @@ namespace Simple1
             RayTracingShader.SetMatrix(_CameraInverseProjection, c.projectionMatrix.inverse);
 
             RayTracingShader.SetVector(_PixelOffset, new Vector2(Random.value, Random.value));
-            
+
             RayTracingShader.SetBuffer(RayTracingComputeKernel, _NewSphereBuffer, _NewSphereComputeBuffer);
             RayTracingShader.SetFloat(_Seed, Random.value);
         }

@@ -26,7 +26,6 @@ uniform float4x4 _CameraToWorld;
 uniform float4x4 _CameraInverseProjection;
 uniform float2 _PixelOffset;
 uniform float _Seed;
-// uniform float4 _DirectionalLight;
 
 struct Ray
 {
@@ -64,7 +63,7 @@ RayHit CreateRayHit()
     hit.albedo = float3(0.5f, 0.5f, 0.5f);
     hit.specular = float3(0.04f, 0.04f, 0.04f);
     hit.smoothness = float3(0.04f, 0.04f, 0.04f);
-    hit.emission = float3(0.0f, 0.0f, 0.0f);
+    hit.emission = 0;
     return hit;
 }
 
@@ -124,7 +123,6 @@ void IntersectGroundPlane(Ray ray, inout RayHit bestHit)
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = float3(0.0f, 1.0f, 0.0f);
-        bestHit.smoothness = 1.0f;
     }
 }
 
@@ -212,10 +210,13 @@ float3 Shade(inout Ray ray, RayHit hit)
     {
         // Erase the ray's energy - the sky doesn't reflect anything
         ray.energy = 0.0f;
+        float3 unitDirection = normalize(ray.direction);
+        float t = 0.5f * (unitDirection.y + 1.0f);
+        return float4((1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0), 1.0);
         // Sample the skybox and write it
-        float theta = acos(ray.direction.y) / -PI;
-        float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5f;
-        return _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 4).xyz;
+        // float theta = acos(ray.direction.y) / -PI;
+        // float phi = atan2(ray.direction.x, -ray.direction.z) / -PI * 0.5f;
+        // return _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 5).xyz;
     }
 }
 
