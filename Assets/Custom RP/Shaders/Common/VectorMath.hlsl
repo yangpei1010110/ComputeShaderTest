@@ -60,5 +60,10 @@ bool DiffuseScatter(Ray rIn, RayHit rec, out float3 attenuation, out Ray scatter
     return true;
 }
 
+float sdot(float3 x, float3 y, float f = 1.0f)
+{
+    return saturate(dot(x, y) * f);
+}
+
 
 #endif

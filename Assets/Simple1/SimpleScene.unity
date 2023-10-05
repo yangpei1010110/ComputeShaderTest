@@ -211,7 +211,7 @@ Transform:
   m_GameObject: {fileID: 635588242}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.4, y: 3, z: -10.48}
+  m_LocalPosition: {x: -0.17, y: 5.89, z: -14.01}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -231,7 +231,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MaxCount: 250
   MaxRange: 20
-  MaxSize: 5
+  MaxSize:
+    x: 0.5
+    y: 3
   DirectionalLight: {fileID: 1417516022}
   SkyboxTexture: {fileID: 2800000, guid: b1baa3eb315e62c4bbfe1db86543928b, type: 3}
   RayTracingShader: {fileID: 7200000, guid: 5ec201708aeb67c459368fe6adb07d3a, type: 3}

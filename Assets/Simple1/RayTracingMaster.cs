@@ -16,6 +16,8 @@ namespace Simple1
             public float  radius;
             public float3 albedo;
             public float3 specular;
+            public float  smoothness;
+            public float3 emission;
         };
 
         private static readonly int            _NewSphereBuffer = Shader.PropertyToID("_NewSphereBuffer");
@@ -42,6 +44,7 @@ namespace Simple1
         private static readonly int _SkyboxTexture           = Shader.PropertyToID("_SkyboxTexture");
         private static readonly int _PixelOffset             = Shader.PropertyToID("_PixelOffset");
         private static readonly int _Sample                  = Shader.PropertyToID("_Sample");
+        private static readonly int _Seed                    = Shader.PropertyToID("_Seed");
         // private static readonly int _SphereBuffer            = Shader.PropertyToID("_SphereBuffer");
         // private static readonly int _SphereBufferCount       = Shader.PropertyToID("_SphereBufferCount");
 
@@ -98,6 +101,9 @@ namespace Simple1
                         var isMetal = Random.value < 0.5f;
                         spheres[index].albedo = isMetal ? float3.zero : new float3(color.r, color.g, color.b);
                         spheres[index].specular = isMetal ? new float3(color.r, color.g, color.b) : 0.04f;
+                        spheres[index].smoothness = isMetal ? Random.value : 0.04f;
+                        var emissionColor = Random.ColorHSV();
+                        spheres[index].emission = Random.value < 0.1f ? new float3(emissionColor.r, emissionColor.g, emissionColor.b) : 0f;
                         index++;
                     }
                 } while (index < MaxCount && maxTryIndex < maxTryCount);
@@ -207,15 +213,9 @@ namespace Simple1
             RayTracingShader.SetMatrix(_CameraInverseProjection, c.projectionMatrix.inverse);
 
             RayTracingShader.SetVector(_PixelOffset, new Vector2(Random.value, Random.value));
-
-            // RayTracingShader.SetBuffer(RayTracingComputeKernel, _SphereBuffer, _SphereComputeBuffer);
-            // RayTracingShader.SetInt(_SphereBufferCount, _sphereDataArray.Length);
-
+            
             RayTracingShader.SetBuffer(RayTracingComputeKernel, _NewSphereBuffer, _NewSphereComputeBuffer);
-
-            float3 l = DirectionalLight == null ? Vector3.zero : DirectionalLight.transform.forward;
-            float i = DirectionalLight == null ? 0 : DirectionalLight.intensity;
-            RayTracingShader.SetVector("_DirectionalLight", new float4(l, i));
+            RayTracingShader.SetFloat(_Seed, Random.value);
         }
 
         private void InitRenderTexture()
