@@ -114,6 +114,15 @@ namespace Simple1
         private void Update()
         {
             bool isChange = false;
+            foreach (MeshFilter meshFilter in MeshObjects)
+            {
+                if (meshFilter.transform.hasChanged)
+                {
+                    meshFilter.transform.hasChanged = false;
+                    isChange = true;
+                    IsNeedRebuild = true;
+                }
+            }
 
             if (transform.hasChanged || isChange)
             {
