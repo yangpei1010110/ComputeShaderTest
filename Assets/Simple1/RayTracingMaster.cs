@@ -1,5 +1,7 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
@@ -22,6 +24,8 @@ namespace Simple1
 
         private static readonly int            _NewSphereBuffer = Shader.PropertyToID("_NewSphereBuffer");
         private static          ComputeBuffer? _NewSphereComputeBuffer;
+        private static readonly int            _MeshBuffer = Shader.PropertyToID("_MeshBuffer");
+        private static          ComputeBuffer? _MeshComputeBuffer;
         public                  int            MaxCount = 500;
         public                  float          MaxRange = 30f;
         public                  float2         MaxSize  = new float2(0.5f, 3f);
@@ -45,30 +49,10 @@ namespace Simple1
         private static readonly int _PixelOffset             = Shader.PropertyToID("_PixelOffset");
         private static readonly int _Sample                  = Shader.PropertyToID("_Sample");
         private static readonly int _Seed                    = Shader.PropertyToID("_Seed");
-        // private static readonly int _SphereBuffer            = Shader.PropertyToID("_SphereBuffer");
-        // private static readonly int _SphereBufferCount       = Shader.PropertyToID("_SphereBufferCount");
-
-
-        // private static readonly Dictionary<SphereCollider, float4> _sphereData      = new Dictionary<SphereCollider, float4>();
-        // private static          float4[]                           _sphereDataArray = Array.Empty<float4>();
-        // private static          ComputeBuffer?                     _SphereComputeBuffer;
 
         void Start()
         {
             _camera ??= GetComponent<Camera>();
-
-            // foreach (var go in gameObject.scene.GetRootGameObjects())
-            // {
-            //     var sc = go.GetComponent<SphereCollider>();
-            //     if (sc != null)
-            //     {
-            //         float4 sphereData = new float4();
-            //         sphereData.xyz = go.transform.position;
-            //         sphereData.w = sc.radius;
-            //         _sphereData.Add(sc, sphereData);
-            //     }
-            // }
-
             // max count 1000
             {
                 int maxTryCount = 10000;
@@ -130,38 +114,9 @@ namespace Simple1
         private void Update()
         {
             bool isChange = false;
-            // foreach (var k in _sphereData.Keys.ToArray())
-            // {
-            //     var newSphereData = new float4();
-            //     newSphereData.xyz = k.transform.position;
-            //     newSphereData.w = k.radius;
-            //
-            //     if (math.any(newSphereData - _sphereData[k]))
-            //     {
-            //         isChange = true;
-            //         _sphereData[k] = newSphereData;
-            //     }
-            // }
 
             if (transform.hasChanged || isChange)
             {
-                // {
-                //     Array.Resize(ref _sphereDataArray, _sphereData.Count);
-                //     int i = 0;
-                //     foreach (var v in _sphereData.Values)
-                //     {
-                //         _sphereDataArray[i] = v;
-                //         i++;
-                //     }
-                //
-                //     if (_SphereComputeBuffer == null)
-                //     {
-                //         _SphereComputeBuffer = new ComputeBuffer(_sphereData.Count, UnsafeUtility.SizeOf<float4>());
-                //     }
-                //
-                //     _SphereComputeBuffer.SetData(_sphereDataArray);
-                // }
-
                 if (_finalTarget != null)
                 {
                     _finalTarget.Release();
@@ -218,6 +173,11 @@ namespace Simple1
 
             RayTracingShader.SetBuffer(RayTracingComputeKernel, _NewSphereBuffer, _NewSphereComputeBuffer);
             RayTracingShader.SetFloat(_Seed, Random.value);
+
+            if (IsNeedRebuild)
+            {
+                RebuildMeshObject();
+            }
         }
 
         private void InitRenderTexture()
@@ -247,6 +207,51 @@ namespace Simple1
                 _finalTarget.enableRandomWrite = true;
                 _finalTarget.Create();
                 _currentSample = 0;
+            }
+        }
+
+        private bool                IsNeedRebuild;
+        private HashSet<MeshFilter> MeshObjects  = new();
+        private Vector3[]           MeshTriangle = Array.Empty<Vector3>();
+
+        public void RegistryMeshObject(MeshFilter meshFilter)
+        {
+            if (meshFilter.sharedMesh == null)
+            {
+                return;
+            }
+
+            if (MeshObjects.Contains(meshFilter))
+            {
+                return;
+            }
+
+            MeshObjects.Add(meshFilter);
+            IsNeedRebuild = true;
+        }
+
+        private void RebuildMeshObject()
+        {
+            var newCount = MeshObjects.Sum(m => m.mesh.triangles.Length);
+            if (newCount != MeshTriangle.Length)
+            {
+                Array.Resize(ref MeshTriangle, newCount);
+            }
+
+            int index = 0;
+            foreach (MeshFilter meshObject in MeshObjects)
+            {
+                Mesh mesh = meshObject.mesh;
+                var localToWorldMatrix = meshObject.transform.localToWorldMatrix;
+                var vertices = mesh.vertices;
+                var triangles = mesh.triangles;
+                for (int i = 0; i < mesh.triangles.Length; i += 3)
+                {
+                    MeshTriangle[index] = localToWorldMatrix * vertices[triangles[i]];
+                    MeshTriangle[index + 1] = localToWorldMatrix * vertices[triangles[i + 1]];
+                    MeshTriangle[index + 2] = localToWorldMatrix * vertices[triangles[i + 2]];
+                    index += 3;
+                }
             }
         }
     }
