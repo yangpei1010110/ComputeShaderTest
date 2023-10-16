@@ -216,7 +216,7 @@ namespace Simple1
 
         public void RegistryMeshObject(MeshFilter meshFilter)
         {
-            if (meshFilter.sharedMesh == null)
+            if (meshFilter.mesh == null)
             {
                 return;
             }
