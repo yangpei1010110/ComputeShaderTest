@@ -106,13 +106,16 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
     stack[top].temp_hit2 = Make_RayHit(0, FLT_MAX, 0);
     stack[top].state_handle = 0;
     top++;
+    UNITY_LOOP
     while (top > 0)
     {
         int current = top - 1;
+        UNITY_BRANCH
         switch (stack[current].state_handle)
         {
         case 0:
             {
+                UNITY_BRANCH
                 if (stack[current].input_treeIndex >= BvhTreeCount)
                 {
                     // out side of tree
@@ -125,6 +128,7 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
                     // data init
                     stack[current].temp_node = BvhTree[stack[current].input_treeIndex];
                     // aabb 相交测试
+                    UNITY_BRANCH
                     if (!Intersects(stack[current].temp_node.value, ray))
                     {
                         // 未命中 返回
@@ -135,6 +139,7 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
                     else
                     {
                         // 命中 继续
+                        UNITY_BRANCH
                         if (stack[current].temp_node.gameObjectId != 0)
                         {
                             // 叶子节点 有对象
@@ -144,6 +149,7 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
                             float3 v2 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 2]];
                             float oldDistance = stack[current].input_hit.distance;
                             float distance = oldDistance;
+                            UNITY_BRANCH
                             if (RayIntersectsTriangle(ray, v0, v1, v2, distance))
                             {
                                 stack[current].input_hit.position = ray.origin + ray.direction * distance;
@@ -198,8 +204,10 @@ bool Raycast(int treeIndex, Ray ray, out RayHit hit)
             stack[current].temp_result2 = stack[top].result;
             stack[current].temp_hit2 = stack[top].input_hit;
             stack[current].result = true;
+            UNITY_BRANCH
             if (stack[current].temp_result1 && stack[current].temp_result2)
             {
+                UNITY_BRANCH
                 if (stack[current].temp_hit1.distance > stack[current].temp_hit2.distance)
                 {
                     stack[current].input_hit = stack[current].temp_hit2;
@@ -257,23 +265,28 @@ float3 RayColor(Ray ray, int depth)
 
     top++;
     int max = 0;
+    UNITY_LOOP
     while (top > 0)
     {
         max++;
+        UNITY_BRANCH
         if (max >= 256)
         {
             // 最大迭代次数
             return 0;
         }
         int current = top - 1;
+        UNITY_LOOP
         switch (stack[current].stateHandle)
         {
         case 0:
             {
                 RayHit hit = Create_RayHit();
+                UNITY_BRANCH
                 if (Raycast(0, stack[current].input_ray, hit))
                 {
                     // stack[current].temp_hit = hit;
+                    UNITY_BRANCH
                     if (stack[current].input_depth <= 0)
                     {
                         stack[current].result = 0;
@@ -284,6 +297,7 @@ float3 RayColor(Ray ray, int depth)
                     {
                         float3 attenuation = 0;
                         Ray scattered = Make_Ray(0, 0);
+                        UNITY_BRANCH
                         if (DiffuseScatter(stack[current].input_ray, hit, attenuation, scattered))
                         {
                             stack[current].temp_attenuation = attenuation;

@@ -19,17 +19,17 @@ void RayTracingCompute(uint3 id : SV_DispatchThreadID)
     float2 uv = ((id.xy + 0.5)) / float2(width, height) * 2.0 - 1.0;
     Ray ray = CreateCameraRays(uv);
 
-    // RayHit hit;
-    // if (Raycast(0, ray, hit))
-    // {
-    //     Result[id.xy] = float4(hit.normal, 1.0);
-    // }
-    // else
-    // {
-    //     float3 unitDirection = normalize(ray.direction);
-    //     float t = 0.5f * (unitDirection.y + 1.0f);
-    //     Result[id.xy] = float4((1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0), 1.0);
-    // }
-    RealResult[id.xy] += float4(RayColor(ray, 50), 1.0);
-    Result[id.xy] = RealResult[id.xy] / RealResult[id.xy].w;
+    RayHit hit;
+    if (Raycast(0, ray, hit))
+    {
+        Result[id.xy] = float4(hit.normal, 1.0);
+    }
+    else
+    {
+        float3 unitDirection = normalize(ray.direction);
+        float t = 0.5f * (unitDirection.y + 1.0f);
+        Result[id.xy] = float4((1.0f - t) * float3(1, 1, 1) + t * float3(0.5, 0.7, 1.0), 1.0);
+    }
+    // RealResult[id.xy] += float4(RayColor(ray, 50), 1.0);
+    // Result[id.xy] = RealResult[id.xy] / RealResult[id.xy].w;
 }

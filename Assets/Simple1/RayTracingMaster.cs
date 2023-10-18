@@ -98,6 +98,7 @@ namespace Simple1
                 _NewSphereComputeBuffer = new ComputeBuffer(index, UnsafeUtility.SizeOf<Sphere>());
                 _NewSphereComputeBuffer.SetData(spheres);
             }
+            _MeshComputeBuffer = new ComputeBuffer(1, UnsafeUtility.SizeOf<Vector3>());
 
             if (RayTracingShader != null)
             {
@@ -114,15 +115,20 @@ namespace Simple1
         private void Update()
         {
             bool isChange = false;
-            foreach (MeshFilter meshFilter in MeshObjects)
+            if (IsNeedRebuild)
             {
-                if (meshFilter.transform.hasChanged)
-                {
-                    meshFilter.transform.hasChanged = false;
-                    isChange = true;
-                    IsNeedRebuild = true;
-                }
+                isChange = true;
+                RebuildMeshObject();
             }
+            // foreach (MeshFilter meshFilter in MeshObjects)
+            // {
+            //     if (meshFilter.transform.hasChanged)
+            //     {
+            //         meshFilter.transform.hasChanged = false;
+            //         isChange = true;
+            //         IsNeedRebuild = true;
+            //     }
+            // }
 
             if (transform.hasChanged || isChange)
             {
@@ -181,12 +187,9 @@ namespace Simple1
             RayTracingShader.SetVector(_PixelOffset, new Vector2(Random.value, Random.value));
 
             RayTracingShader.SetBuffer(RayTracingComputeKernel, _NewSphereBuffer, _NewSphereComputeBuffer);
-            RayTracingShader.SetFloat(_Seed, Random.value);
+            RayTracingShader.SetBuffer(RayTracingComputeKernel, _MeshBuffer, _MeshComputeBuffer);
 
-            if (IsNeedRebuild)
-            {
-                RebuildMeshObject();
-            }
+            RayTracingShader.SetFloat(_Seed, Random.value);
         }
 
         private void InitRenderTexture()
@@ -219,13 +222,13 @@ namespace Simple1
             }
         }
 
-        private bool                IsNeedRebuild;
-        private HashSet<MeshFilter> MeshObjects  = new();
-        private Vector3[]           MeshTriangle = Array.Empty<Vector3>();
+        public static  bool                IsNeedRebuild;
+        private static HashSet<MeshFilter> MeshObjects  = new();
+        private static Vector3[]           MeshTriangle = Array.Empty<Vector3>();
 
-        public void RegistryMeshObject(MeshFilter meshFilter)
+        public static void RegisterMeshObject(MeshFilter meshFilter)
         {
-            if (meshFilter.mesh == null)
+            if (meshFilter.sharedMesh == null)
             {
                 return;
             }
@@ -239,9 +242,26 @@ namespace Simple1
             IsNeedRebuild = true;
         }
 
+        public static void UnregisterMeshObject(MeshFilter meshFilter)
+        {
+            if (meshFilter.sharedMesh == null)
+            {
+                return;
+            }
+
+            if (!MeshObjects.Contains(meshFilter))
+            {
+                return;
+            }
+
+            MeshObjects.Remove(meshFilter);
+            IsNeedRebuild = true;
+        }
+
         private void RebuildMeshObject()
         {
-            var newCount = MeshObjects.Sum(m => m.mesh.triangles.Length);
+            var newCount = MeshObjects.Sum(m => m.sharedMesh.triangles.Length);
+            Debug.Log($"newCount : {newCount}");
             if (newCount != MeshTriangle.Length)
             {
                 Array.Resize(ref MeshTriangle, newCount);
@@ -251,17 +271,33 @@ namespace Simple1
             foreach (MeshFilter meshObject in MeshObjects)
             {
                 Mesh mesh = meshObject.mesh;
-                var localToWorldMatrix = meshObject.transform.localToWorldMatrix;
+                var trans = meshObject.transform;
+                var pos = trans.position;
+                var localToWorldMatrix = trans.localToWorldMatrix;
                 var vertices = mesh.vertices;
                 var triangles = mesh.triangles;
                 for (int i = 0; i < mesh.triangles.Length; i += 3)
                 {
-                    MeshTriangle[index] = localToWorldMatrix * vertices[triangles[i]];
-                    MeshTriangle[index + 1] = localToWorldMatrix * vertices[triangles[i + 1]];
-                    MeshTriangle[index + 2] = localToWorldMatrix * vertices[triangles[i + 2]];
+                    MeshTriangle[index] = pos + (Vector3)(localToWorldMatrix * vertices[triangles[i]]);
+                    MeshTriangle[index + 1] = pos + (Vector3)(localToWorldMatrix * vertices[triangles[i + 1]]);
+                    MeshTriangle[index + 2] = pos + (Vector3)(localToWorldMatrix * vertices[triangles[i + 2]]);
                     index += 3;
                 }
             }
+
+            if (_MeshComputeBuffer == null)
+            {
+                _MeshComputeBuffer = new ComputeBuffer(math.max(newCount, 1), UnsafeUtility.SizeOf<Vector3>());
+            }
+            else if (_MeshComputeBuffer.count != newCount)
+            {
+                _MeshComputeBuffer.Release();
+                _MeshComputeBuffer = new ComputeBuffer(math.max(newCount, 1), UnsafeUtility.SizeOf<Vector3>());
+            }
+
+            Debug.Log($"Buffer : {_MeshComputeBuffer.count}");
+            _MeshComputeBuffer.SetData(MeshTriangle);
+            IsNeedRebuild = false;
         }
     }
 }

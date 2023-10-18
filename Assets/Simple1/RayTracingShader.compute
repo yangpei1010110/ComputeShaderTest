@@ -1,8 +1,27 @@
 #pragma kernel RayTracingCompute
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-// #include "../Custom RP/Shaders/Common/Random.hlsl"
-// #include "../Custom RP/Shaders/Common/VectorMath.hlsl"
+
+struct Bounds
+{
+    float3 center;
+    float3 extents;
+};
+
+struct BvhNode
+{
+    Bounds value;
+    int gameObjectId;
+    int materialId;
+    int triangleIndex;
+};
+
+
+uniform RWStructuredBuffer<float3> Vertices;
+uniform RWStructuredBuffer<int> Triangles;
+uniform RWStructuredBuffer<BvhNode> BvhTree;
+uniform int BvhTreeCount;
+uniform int TrianglesCount;
 
 
 struct Sphere
@@ -16,6 +35,7 @@ struct Sphere
 };
 
 uniform StructuredBuffer<Sphere> _NewSphereBuffer;
+uniform StructuredBuffer<float3> _MeshBuffer;
 
 // uniform RWStructuredBuffer<float4> _SphereBuffer;
 // uniform uint _SphereBufferCount;
@@ -41,6 +61,87 @@ Ray CreateRay(float3 origin, float3 direction)
     ray.direction = direction;
     ray.energy = float3(1.0f, 1.0f, 1.0f);
     return ray;
+}
+
+float3 GetMin(in Bounds bounds)
+{
+    return bounds.center - bounds.extents;
+}
+
+float3 GetMax(in Bounds bounds)
+{
+    return bounds.center + bounds.extents;
+}
+
+// AABB 光线 求交算法
+bool Intersects(Bounds bounds, Ray ray)
+{
+    float tMin = 0, tMax = FLT_MAX;
+    float3 boxMin = GetMin(bounds);
+    float3 boxMax = GetMax(bounds);
+    float t1, t2;
+
+    float3 invDirection = 1.0 / ray.direction;
+    t1 = (boxMin.x - ray.origin.x) * invDirection.x;
+    t2 = (boxMax.x - ray.origin.x) * invDirection.x;
+    tMin = min(max(t1, tMin), max(t2, tMin));
+    tMax = max(min(t1, tMax), min(t2, tMax));
+    t1 = (boxMin.y - ray.origin.y) * invDirection.y;
+    t2 = (boxMax.y - ray.origin.y) * invDirection.y;
+    tMin = min(max(t1, tMin), max(t2, tMin));
+    tMax = max(min(t1, tMax), min(t2, tMax));
+    t1 = (boxMin.z - ray.origin.z) * invDirection.z;
+    t2 = (boxMax.z - ray.origin.z) * invDirection.z;
+    tMin = min(max(t1, tMin), max(t2, tMin));
+    tMax = max(min(t1, tMax), min(t2, tMax));
+    return tMin <= tMax;
+}
+
+bool RayIntersectsTriangle(Ray ray, float3 t0, float3 t1, float3 t2, out float outIntersectionT)
+{
+    const float EPSILON = 0.0000001;
+    // outIntersectionT = 0;
+    float3 edge1, edge2, h, s, q;
+    float a, f, u, v;
+    edge1 = t1 - t0;
+    edge2 = t2 - t0;
+    h = cross(ray.direction, edge2);
+    a = dot(edge1, h);
+    UNITY_BRANCH
+    if (a > -EPSILON && a < EPSILON)
+    {
+        return false;
+    }
+
+    f = 1.0 / a;
+    s = ray.origin - t0;
+    u = f * dot(s, h);
+
+    UNITY_BRANCH
+    if (u < 0.0 || u > 1.0)
+    {
+        return false;
+    }
+
+    q = cross(s, edge1);
+    v = f * dot(ray.direction, q);
+
+    UNITY_BRANCH
+    if (v < 0.0 || u + v > 1.0)
+    {
+        return false;
+    }
+
+    float t = f * dot(edge2, q);
+    if (t > EPSILON)
+    {
+        outIntersectionT = t;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 struct RayHit
@@ -148,6 +249,12 @@ void IntersectSphere(Ray ray, inout RayHit bestHit, Sphere sphere)
     }
 }
 
+
+float3 Normal(float3 t0, float3 t1, float3 t2)
+{
+    return normalize(cross(t1 - t0, t2 - t0));
+}
+
 RayHit Trace(Ray ray)
 {
     RayHit bestHit = CreateRayHit();
@@ -158,6 +265,32 @@ RayHit Trace(Ray ray)
     for (int i = 0; i < numSpheres; ++i)
     {
         IntersectSphere(ray, bestHit, _NewSphereBuffer[i]);
+    }
+
+    _MeshBuffer.GetDimensions(numSpheres, stride);
+    UNITY_BRANCH
+    if (numSpheres > 1)
+    {
+        UNITY_LOOP
+        for (int i = 0; i < numSpheres; i += 3)
+        {
+            float bestT = 1.#INF;
+            UNITY_BRANCH
+            if (RayIntersectsTriangle(ray, _MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2], bestT))
+            {
+                UNITY_BRANCH
+                if (bestT > 0 && bestT < bestHit.distance)
+                {
+                    bestHit.distance = bestT;
+                    bestHit.position = ray.origin + bestT * ray.direction;
+                    bestHit.normal = Normal(_MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2]);
+                    bestHit.albedo = float3(0.5f, 0.5f, 0.5f);
+                    bestHit.specular = float3(0.04f, 0.04f, 0.04f);
+                    bestHit.smoothness = float3(0.04f, 0.04f, 0.04f);
+                    bestHit.emission = 0;
+                }
+            };
+        }
     }
     return bestHit;
 }
