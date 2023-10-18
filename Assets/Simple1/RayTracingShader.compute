@@ -8,6 +8,14 @@ struct Bounds
     float3 extents;
 };
 
+Bounds CreateBounds()
+{
+    Bounds bounds;
+    bounds.center = float3(0.0f, 0.0f, 0.0f);
+    bounds.extents = float3(0.0f, 0.0f, 0.0f);
+    return bounds;
+}
+
 struct BvhNode
 {
     Bounds value;
@@ -16,10 +24,19 @@ struct BvhNode
     int triangleIndex;
 };
 
+BvhNode CreateBvhNode()
+{
+    BvhNode bvhNode;
+    bvhNode.value = CreateBounds();
+    bvhNode.gameObjectId = 0;
+    bvhNode.materialId = 0;
+    bvhNode.triangleIndex = 0;
+    return bvhNode;
+}
 
-uniform RWStructuredBuffer<float3> Vertices;
-uniform RWStructuredBuffer<int> Triangles;
-uniform RWStructuredBuffer<BvhNode> BvhTree;
+uniform StructuredBuffer<float3> Vertices;
+uniform StructuredBuffer<int> Triangles;
+uniform StructuredBuffer<BvhNode> BvhTree;
 uniform int BvhTreeCount;
 uniform int TrianglesCount;
 
@@ -255,6 +272,171 @@ float3 Normal(float3 t0, float3 t1, float3 t2)
     return normalize(cross(t1 - t0, t2 - t0));
 }
 
+// TODO 实现 BVH 光线 求交算法
+bool Raycast(int treeIndex, Ray ray, out RayHit hit)
+{
+    struct StackData
+    {
+        int input_treeIndex;
+        RayHit input_hit;
+        bool result;
+
+        BvhNode temp_node;
+        bool temp_result1;
+        RayHit temp_hit1;
+        bool temp_result2;
+        RayHit temp_hit2;
+
+        int state_handle;
+    };
+
+    hit = CreateRayHit();
+
+    const int MAX_STACK_SIZE = 64;
+    StackData stack[MAX_STACK_SIZE];
+    int top = 0;
+    stack[top].input_hit = hit;
+    stack[top].input_treeIndex = 0;
+    stack[top].temp_node = CreateBvhNode();
+    stack[top].temp_result1 = 0;
+    stack[top].temp_hit1 = CreateRayHit();
+    stack[top].temp_result2 = 0;
+    stack[top].temp_hit2 = CreateRayHit();
+    stack[top].state_handle = 0;
+    top++;
+    UNITY_LOOP
+    while (top > 0)
+    {
+        int current = top - 1;
+        UNITY_BRANCH
+        switch (stack[current].state_handle)
+        {
+        case 0:
+            {
+                UNITY_BRANCH
+                if (stack[current].input_treeIndex >= BvhTreeCount)
+                {
+                    // out side of tree
+                    stack[current].result = false;
+                    top--;
+                    break;
+                }
+                else
+                {
+                    // data init
+                    stack[current].temp_node = BvhTree[stack[current].input_treeIndex];
+                    // aabb 相交测试
+                    UNITY_BRANCH
+                    if (!Intersects(stack[current].temp_node.value, ray))
+                    {
+                        // 未命中 返回
+                        stack[current].result = false;
+                        top--;
+                        break;
+                    }
+                    else
+                    {
+                        // 命中 继续
+                        UNITY_BRANCH
+                        if (stack[current].temp_node.gameObjectId != 0)
+                        {
+                            // 叶子节点 有对象
+                            // intersect with triangle
+                            float3 v0 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 0]];
+                            float3 v1 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 1]];
+                            float3 v2 = Vertices[Triangles[stack[current].temp_node.triangleIndex * 3 + 2]];
+                            float oldDistance = stack[current].input_hit.distance;
+                            float distance = oldDistance;
+                            UNITY_BRANCH
+                            if (RayIntersectsTriangle(ray, v0, v1, v2, distance))
+                            {
+                                stack[current].input_hit.position = ray.origin + ray.direction * distance;
+                                stack[current].input_hit.distance = distance;
+                                stack[current].result = true;
+                            }
+                            else
+                            {
+                                stack[current].input_hit.distance = oldDistance;
+                                stack[current].result = false;
+                            }
+                            stack[current].input_hit.normal = normalize(cross(v0 - v1, v0 - v2));
+                            top--;
+                            break;
+                        }
+                        else
+                        {
+                            // is node
+                            // intersect with aabb
+                            stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 1;
+                            stack[top].input_hit = CreateRayHit();
+                            stack[top].temp_node = CreateBvhNode();
+                            stack[top].temp_result1 = 0;
+                            stack[top].temp_hit1 = CreateRayHit();
+                            stack[top].temp_result2 = 0;
+                            stack[top].temp_hit2 = CreateRayHit();
+                            stack[top].state_handle = 0;
+                            top++;
+                            stack[current].state_handle = 1;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            break;
+        case 1:
+            stack[current].temp_result1 = stack[top].result;
+            stack[current].temp_hit1 = stack[top].input_hit;
+            stack[top].input_treeIndex = stack[current].input_treeIndex * 2 + 2;
+            stack[top].input_hit = CreateRayHit();
+            stack[top].temp_node = CreateBvhNode();
+            stack[top].temp_result1 = 0;
+            stack[top].temp_hit1 = CreateRayHit();
+            stack[top].temp_result2 = 0;
+            stack[top].temp_hit2 = CreateRayHit();
+            stack[top].state_handle = 0;
+            top++;
+            stack[current].state_handle = 2;
+            break;
+        case 2:
+            stack[current].temp_result2 = stack[top].result;
+            stack[current].temp_hit2 = stack[top].input_hit;
+            stack[current].result = true;
+            UNITY_BRANCH
+            if (stack[current].temp_result1 && stack[current].temp_result2)
+            {
+                UNITY_BRANCH
+                if (stack[current].temp_hit1.distance > stack[current].temp_hit2.distance)
+                {
+                    stack[current].input_hit = stack[current].temp_hit2;
+                }
+                else
+                {
+                    stack[current].input_hit = stack[current].temp_hit1;
+                }
+            }
+            else if ((!stack[current].temp_result1) && stack[current].temp_result2)
+            {
+                stack[current].input_hit = stack[current].temp_hit2;
+            }
+            else if (stack[current].temp_result1 && (!stack[current].temp_result2))
+            {
+                stack[current].input_hit = stack[current].temp_hit1;
+            }
+            else
+            {
+                stack[current].result = false;
+            }
+            top--;
+            break;
+        default:
+            break;
+        }
+    }
+    hit = stack[0].input_hit;
+    return stack[0].result;
+}
+
 RayHit Trace(Ray ray)
 {
     RayHit bestHit = CreateRayHit();
@@ -267,29 +449,46 @@ RayHit Trace(Ray ray)
         IntersectSphere(ray, bestHit, _NewSphereBuffer[i]);
     }
 
-    _MeshBuffer.GetDimensions(numSpheres, stride);
+    // _MeshBuffer.GetDimensions(numSpheres, stride);
+    // UNITY_BRANCH
+    // if (numSpheres > 1)
+    // {
+    //     UNITY_LOOP
+    //     for (int i = 0; i < numSpheres; i += 3)
+    //     {
+    //         float bestT = 1.#INF;
+    //         UNITY_BRANCH
+    //         if (RayIntersectsTriangle(ray, _MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2], bestT))
+    //         {
+    //             UNITY_BRANCH
+    //             if (bestT > 0 && bestT < bestHit.distance)
+    //             {
+    //                 bestHit.distance = bestT;
+    //                 bestHit.position = ray.origin + bestT * ray.direction;
+    //                 bestHit.normal = Normal(_MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2]);
+    //                 bestHit.albedo = float3(0.5f, 0.5f, 0.5f);
+    //                 bestHit.specular = float3(0.04f, 0.04f, 0.04f);
+    //                 bestHit.smoothness = float3(0.04f, 0.04f, 0.04f);
+    //                 bestHit.emission = 0;
+    //             }
+    //         };
+    //     }
+    // }
+
+    RayHit tempHit = CreateRayHit();
     UNITY_BRANCH
-    if (numSpheres > 1)
+    if (Raycast(0, ray, tempHit))
     {
-        UNITY_LOOP
-        for (int i = 0; i < numSpheres; i += 3)
+        UNITY_BRANCH
+        if (tempHit.distance > 0 && tempHit.distance < bestHit.distance)
         {
-            float bestT = 1.#INF;
-            UNITY_BRANCH
-            if (RayIntersectsTriangle(ray, _MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2], bestT))
-            {
-                UNITY_BRANCH
-                if (bestT > 0 && bestT < bestHit.distance)
-                {
-                    bestHit.distance = bestT;
-                    bestHit.position = ray.origin + bestT * ray.direction;
-                    bestHit.normal = Normal(_MeshBuffer[i], _MeshBuffer[i + 1], _MeshBuffer[i + 2]);
-                    bestHit.albedo = float3(0.5f, 0.5f, 0.5f);
-                    bestHit.specular = float3(0.04f, 0.04f, 0.04f);
-                    bestHit.smoothness = float3(0.04f, 0.04f, 0.04f);
-                    bestHit.emission = 0;
-                }
-            };
+            bestHit.distance = tempHit.distance;
+            bestHit.position = ray.origin + bestHit.distance * ray.direction;
+            bestHit.normal = tempHit.normal;
+            bestHit.albedo = float3(0.5f, 0.5f, 0.5f);
+            bestHit.specular = float3(0.04f, 0.04f, 0.04f);
+            bestHit.smoothness = float3(0.04f, 0.04f, 0.04f);
+            bestHit.emission = 0;
         }
     }
     return bestHit;

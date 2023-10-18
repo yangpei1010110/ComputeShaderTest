@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Tools;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
@@ -12,6 +13,13 @@ namespace Simple1
 {
     public class RayTracingMaster : MonoBehaviour
     {
+        private                 BvhBuild?      _bvhBuild;
+        private                 ComputeBuffer? BvhTreeBuffer;
+        private                 ComputeBuffer? BvhTreeVertices;
+        private                 ComputeBuffer? BvhTreeTriangles;
+        private static readonly int            BvhTreeCount   = Shader.PropertyToID("BvhTreeCount");
+        private static readonly int            TrianglesCount = Shader.PropertyToID("TrianglesCount");
+
         public struct Sphere
         {
             public float3 position;
@@ -53,6 +61,7 @@ namespace Simple1
         void Start()
         {
             _camera ??= GetComponent<Camera>();
+            _bvhBuild ??= GetComponent<BvhBuild>();
             // max count 1000
             {
                 int maxTryCount = 10000;
@@ -115,20 +124,28 @@ namespace Simple1
         private void Update()
         {
             bool isChange = false;
-            if (IsNeedRebuild)
+            if (IsNeedRebuild && _bvhBuild != null)
             {
                 isChange = true;
-                RebuildMeshObject();
+                _bvhBuild.Build(MeshObjects);
+                if (BvhTreeBuffer == null
+                 || BvhTreeBuffer.count != _bvhBuild._tree._arr.Length
+                 || BvhTreeVertices == null
+                 || BvhTreeVertices.count != _bvhBuild.Vertices.Length
+                 || BvhTreeTriangles == null
+                 || BvhTreeTriangles.count != _bvhBuild.Triangles.Length)
+                {
+                    BvhTreeBuffer ??= new ComputeBuffer(_bvhBuild._tree._arr.Length, UnsafeUtility.SizeOf<BvhNodeTools.BvhNode>());
+                    BvhTreeVertices ??= new ComputeBuffer(_bvhBuild.Vertices.Length, UnsafeUtility.SizeOf<Vector3>());
+                    BvhTreeTriangles ??= new ComputeBuffer(_bvhBuild.Triangles.Length, UnsafeUtility.SizeOf<int>());
+                }
+
+                BvhTreeBuffer.SetData(_bvhBuild._tree._arr);
+                BvhTreeVertices.SetData(_bvhBuild.Vertices);
+                BvhTreeTriangles.SetData(_bvhBuild.Triangles);
+                // RebuildMeshObject();
+                IsNeedRebuild = false;
             }
-            // foreach (MeshFilter meshFilter in MeshObjects)
-            // {
-            //     if (meshFilter.transform.hasChanged)
-            //     {
-            //         meshFilter.transform.hasChanged = false;
-            //         isChange = true;
-            //         IsNeedRebuild = true;
-            //     }
-            // }
 
             if (transform.hasChanged || isChange)
             {
@@ -177,6 +194,12 @@ namespace Simple1
             {
                 return;
             }
+
+            RayTracingShader.SetBuffer(RayTracingComputeKernel, @"BvhTree", BvhTreeBuffer);
+            RayTracingShader.SetBuffer(RayTracingComputeKernel, @"Vertices", BvhTreeVertices);
+            RayTracingShader.SetBuffer(RayTracingComputeKernel, @"Triangles", BvhTreeTriangles);
+            RayTracingShader.SetInt(BvhTreeCount, _bvhBuild._tree._arr.Length);
+            RayTracingShader.SetInt(TrianglesCount, BvhTreeTriangles.count);
 
             RayTracingShader.SetTexture(RayTracingComputeKernel, _SkyboxTexture, SkyboxTexture);
             RayTracingShader.SetTexture(RayTracingComputeKernel, Result, _target);

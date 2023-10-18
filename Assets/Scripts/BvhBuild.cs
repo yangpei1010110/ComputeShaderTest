@@ -14,7 +14,6 @@ public class BvhBuild : MonoBehaviour
 
     void Start()
     {
-        Stopwatch sw = Stopwatch.StartNew();
         List<BvhNodeTools.BvhNode> bvhNodeList = new();
         List<Vector3> verticesList = new();
         List<int> trianglesList = new();
@@ -27,12 +26,22 @@ public class BvhBuild : MonoBehaviour
         Vertices = verticesList.ToArray();
         Triangles = trianglesList.ToArray();
         BvhNodeTools.Build(_bvhNodes, 0, _bvhNodes.Length, _tree, 0);
+    }
 
-        sw.Stop();
-        if (_tree._arr.Length != 0)
+    public void Build(IEnumerable<MeshFilter> meshFilters)
+    {
+        List<BvhNodeTools.BvhNode> bvhNodeList = new();
+        List<Vector3> verticesList = new();
+        List<int> trianglesList = new();
+        foreach (MeshFilter meshFilter in meshFilters)
         {
-            var maxDept = _tree.depth;
+            BvhNodeTools.SubCollectAllBvhNodes(meshFilter, ref bvhNodeList, ref verticesList, ref trianglesList);
         }
+
+        var _bvhNodes = bvhNodeList.ToArray();
+        Vertices = verticesList.ToArray();
+        Triangles = trianglesList.ToArray();
+        BvhNodeTools.Build(_bvhNodes, 0, _bvhNodes.Length, _tree, 0);
     }
 
     private void OnDrawGizmosSelected()

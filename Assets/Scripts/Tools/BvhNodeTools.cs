@@ -91,7 +91,10 @@ namespace Tools
             {
                 return;
             }
-
+            SubCollectAllBvhNodes(meshFilter, ref result, ref verticesList, ref trianglesList);
+        }
+        public static void SubCollectAllBvhNodes(in MeshFilter meshFilter, ref List<BvhNode> result, ref List<Vector3> verticesList, ref List<int> trianglesList)
+        {
             Mesh? mesh = meshFilter.mesh;
             Vector3[]? vertices = mesh.vertices;
             Vector3[]? normals = mesh.normals;
@@ -102,7 +105,7 @@ namespace Tools
                 return;
             }
 
-            Transform goTransform = go.transform;
+            Transform goTransform = meshFilter.transform;
             Matrix4x4 goLocalToWorldMatrix = goTransform.localToWorldMatrix;
             Vector3 goPosition = goTransform.position;
             for (int i = 0; i < vertices.Length; i++)
@@ -118,7 +121,7 @@ namespace Tools
                 result.Add(new BvhNode()
                 {
                     value = GetBounds(t0, t1, t2),
-                    gameObjectId = go.GetInstanceID(),
+                    gameObjectId = meshFilter.GetInstanceID(),
                     triangleIndex = trianglesList.Count / 3 + i,
                 });
             }
@@ -131,7 +134,7 @@ namespace Tools
 
             verticesList.AddRange(vertices);
             trianglesList.AddRange(triangles);
-            foreach (GameObject subGo in go.transform)
+            foreach (GameObject subGo in meshFilter.transform)
             {
                 SubCollectAllBvhNodes(subGo, ref result, ref verticesList, ref trianglesList);
             }
