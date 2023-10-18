@@ -5,4 +5,4 @@
 
 效果图2
 
-<img width="532" alt="屏幕截图 2023-10-18 190540" src="https://github.com/yangpei1010110/ComputeShaderTest/assets/28611200/e95d763c-f4b4-465e-babf-dad4a340b0c1">
+<img width="529" alt="屏幕截图 2023-10-18 191039" src="https://github.com/yangpei1010110/ComputeShaderTest/assets/28611200/b411c2ff-31fa-47f6-813f-fb20a5a040b3">
