@@ -1,7 +1,7 @@
 # ComputeShaderTest
-效果图1
+效果1
 
-<img width="803" alt="ComputeShaderTest_Example1" src="https://github.com/yangpei1010110/ComputeShaderTest/assets/28611200/ceaaae63-f352-4a68-9c45-bf307afd1855">
+https://github.com/yangpei1010110/ComputeShaderTest/assets/28611200/a709e67c-2c10-4529-a40f-89a692671284
 
 效果图2
 
